@@ -6,8 +6,7 @@ let totalVenta = 0;
 // 1. Cargar los productos desde el JSON al arrancar
 async function cargarProductos() {
     try {
-        const respuesta = await fetch('productos.json');
-        productosDB = await respuesta.json();
+     productosDB = JSON.parse(localStorage.getItem('inventario')) || [];
         console.log("Inventario cargado con éxito");
     } catch (error) {
         console.error("Error cargando el JSON:", error);
