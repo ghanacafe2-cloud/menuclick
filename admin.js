@@ -96,3 +96,16 @@ function borrarVentas() {
 }
 
 actualizarTodo();
+function calcularVuelto() {
+    const pagaCon = parseFloat(document.getElementById('paga-con').value) || 0;
+    const vuelto = pagaCon - totalVenta;
+    const displayVuelto = document.getElementById('vuelto-display');
+    
+    if (vuelto < 0) {
+        displayVuelto.innerText = "Falta dinero";
+        displayVuelto.style.color = "red";
+    } else {
+        displayVuelto.innerText = `$${vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+        displayVuelto.style.color = "green";
+    }
+}
