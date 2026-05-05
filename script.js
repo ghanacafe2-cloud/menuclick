@@ -1,52 +1,63 @@
-// Simulamos la base de datos (después la podés pasar a un productos.json aparte)
-let productosDB = [
-    { id: "7790070411730", nombre: "Yerba Mate 500g", precio: 2500, tipo: "fijo" },
-    { id: "7791234567890", nombre: "Alfajor Triple", precio: 900, tipo: "fijo" },
-    { id: "PAN", nombre: "Pan Francés (kg)", precio: 0, tipo: "variable" },
-    { id: "JAMON", nombre: "Jamón Cocido (100g)", precio: 0, tipo: "variable" }
-];
-
+// Variable global para el inventario
+let productosDB = [];
 let carrito = [];
 let totalVenta = 0;
 
-const inputCodigo = document.getElementById('codigo');
-const listaProductos = document.getElementById('lista-productos');
-const displayTotal = document.getElementById('total-display');
+// 1. Cargar los productos desde el JSON al arrancar
+async function cargarProductos() {
+    try {
+        const respuesta = await fetch('productos.json');
+        productosDB = await respuesta.json();
+        console.log("Inventario cargado con éxito");
+    } catch (error) {
+        console.error("Error cargando el JSON:", error);
+        alert("No se pudo cargar productos.json. Asegurate de que el archivo esté en el repo.");
+    }
+}
 
-// Escuchar cuando la pistolita manda el código (Enter)
+// 2. Escuchar a la "pistolita" (Input de código)
+const inputCodigo = document.getElementById('codigo');
 inputCodigo.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         const codigoLeido = inputCodigo.value.trim().toUpperCase();
-        buscarProducto(codigoLeido);
-        inputCodigo.value = ''; // Limpia para el próximo escaneo
+        if (codigoLeido !== "") {
+            procesarEscaneo(codigoLeido);
+        }
+        inputCodigo.value = ''; // Limpia el campo para el siguiente escaneo
     }
 });
 
-function buscarProducto(codigo) {
+// 3. Buscar el producto y manejar la lógica
+function procesarEscaneo(codigo) {
     const producto = productosDB.find(p => p.id === codigo);
 
     if (producto) {
         if (producto.tipo === "variable") {
-            // Si es pan o fiambre, pedimos el precio manualmente
+            // Lógica para Pan/Fiambre: pide el precio al usuario
             const precioManual = parseFloat(prompt(`Ingrese el precio para ${producto.nombre}:`));
             if (!isNaN(precioManual) && precioManual > 0) {
                 agregarAlCarrito(producto.nombre, precioManual);
             }
         } else {
+            // Producto con precio fijo
             agregarAlCarrito(producto.nombre, producto.precio);
         }
     } else {
-        alert("Producto no encontrado. ¡Cargalo en el Admin!");
+        alert(`El código ${codigo} no está registrado.`);
     }
 }
 
+// 4. Actualizar el carrito
 function agregarAlCarrito(nombre, precio) {
     carrito.push({ nombre, precio });
-    actualizarInterfaz();
+    renderizarCarrito();
 }
 
-function actualizarInterfaz() {
-    listaProductos.innerHTML = ''; // Limpiamos la lista
+function renderizarCarrito() {
+    const lista = document.getElementById('lista-productos');
+    const displayTotal = document.getElementById('total-display');
+    
+    lista.innerHTML = ''; // Limpiar lista visual
     totalVenta = 0;
 
     carrito.forEach((item, index) => {
@@ -54,39 +65,41 @@ function actualizarInterfaz() {
         const fila = document.createElement('div');
         fila.className = 'producto-fila';
         fila.innerHTML = `
-            <span>${item.nombre}</span>
-            <span>$${item.precio.toLocaleString('es-AR')}</span>
-            <button onclick="eliminarDelCarrito(${index})" style="background:red; color:white; border:none; border-radius:3px; cursor:pointer;">X</button>
+            <span><strong>${item.nombre}</strong></span>
+            <span>$${item.precio.toFixed(2)}</span>
+            <button class="btn-eliminar" onclick="quitarItem(${index})">X</button>
         `;
-        listaProductos.appendChild(fila);
+        lista.appendChild(fila);
     });
 
     displayTotal.innerText = `$${totalVenta.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
 }
 
-function eliminarDelCarrito(index) {
+function quitarItem(index) {
     carrito.splice(index, 1);
-    actualizarInterfaz();
+    renderizarCarrito();
 }
 
+// 5. Finalizar Venta y Cierre
 function finalizarVenta() {
-    if (carrito.length === 0) return alert("El carrito está vacío");
+    if (carrito.length === 0) return alert("¡El carrito está vacío!");
 
     const metodo = document.getElementById('metodo-pago').value;
     
-    // Aquí podrías guardar la venta en un historial para el Cierre de Caja
-    const ventaRealizada = {
-        fecha: new Date().toLocaleString(),
+    // Aquí podrías enviar esto a una base de datos o LocalStorage para el cierre de caja
+    const ticket = {
+        hora: new Date().toLocaleTimeString(),
         total: totalVenta,
-        metodo: metodo,
-        items: carrito
+        pago: metodo
     };
 
-    console.log("Venta Registrada:", ventaRealizada);
-    alert(`¡Venta Exitosa!\nTotal: $${totalVenta}\nMedio: ${metodo.toUpperCase()}`);
+    alert(`VENTA FINALIZADA\nTotal: $${totalVenta}\nPago: ${metodo.toUpperCase()}`);
     
-    // Resetear todo
+    // Limpiar todo para el próximo cliente
     carrito = [];
-    actualizarInterfaz();
+    renderizarCarrito();
     inputCodigo.focus();
 }
+
+// Arrancar la carga al abrir la página
+cargarProductos();
