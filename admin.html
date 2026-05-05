@@ -1,1 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - Kiosco El Cholo</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #e9ecef; }
+        header { background: #2c3e50; color: white; padding: 15px; text-align: center; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-save { background: #27ae60; color: white; }
+        .btn-nav { background: #34495e; color: white; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f8f9fa; }
+        .btn-delete { background: #e74c3c; color: white; padding: 5px; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
 
+<header>
+    <h1>PANEL DE CONTROL - INVENTARIO</h1>
+</header>
+
+<div class="container">
+    <button class="btn-nav" onclick="window.location.href='index.html'">⬅ VOLVER AL MOSTRADOR</button>
+
+    <h3>Cargar / Editar Producto</h3>
+    <div class="form-group">
+        <label>Código de Barras (Gatillá la pistolita):</label>
+        <input type="text" id="admin-codigo" placeholder="Escanear código..." autofocus>
+    </div>
+    <div class="form-group">
+        <label>Nombre del Producto:</label>
+        <input type="text" id="admin-nombre" placeholder="Ej: Alfajor Fantoche">
+    </div>
+    <div class="form-group">
+        <label>Precio ($):</label>
+        <input type="number" id="admin-precio" placeholder="0.00">
+    </div>
+    <div class="form-group">
+        <label>Tipo:</label>
+        <select id="admin-tipo" style="width:100%; padding:10px;">
+            <option value="fijo">Precio Fijo</option>
+            <option value="variable">Precio Variable (Pan/Fiambre)</option>
+        </select>
+    </div>
+    <button class="btn-save" onclick="guardarProducto()">GUARDAR PRODUCTO</button>
+
+    <hr>
+
+    <h3>Lista de Precios</h3>
+    <table id="tabla-productos">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>
