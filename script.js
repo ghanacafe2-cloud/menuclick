@@ -103,3 +103,6 @@ function finalizarVenta() {
 
 // Arrancar la carga al abrir la página
 cargarProductos();
+
+// Arrancar la carga al abrir la página
+cargarProductos();
