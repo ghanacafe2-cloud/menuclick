@@ -51,6 +51,30 @@ function eliminarProducto(index) {
         actualizarTabla();
     }
 }
+function mostrarReporte() {
+    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    let efec = 0, deb = 0, qr = 0;
 
+    ventas.forEach(v => {
+        if (v.metodo === 'efectivo') efec += v.total;
+        if (v.metodo === 'debito') deb += v.total;
+        if (v.metodo === 'qr') qr += v.total;
+    });
+
+    document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString('es-AR')}`;
+    document.getElementById('total-debito').innerText = `$${deb.toLocaleString('es-AR')}`;
+    document.getElementById('total-qr').innerText = `$${qr.toLocaleString('es-AR')}`;
+    document.getElementById('total-general').innerText = `$${(efec + deb + qr).toLocaleString('es-AR')}`;
+}
+
+function borrarVentas() {
+    if (confirm("¿Estás seguro de que querés borrar el historial de hoy? Esto reinicia la caja a cero.")) {
+        localStorage.setItem('ventas_realizadas', JSON.stringify([]));
+        mostrarReporte();
+    }
+}
+
+// Llamá a mostrarReporte() al final de tu admin.js para que cargue apenas abrís
+mostrarReporte();
 // Cargar tabla al iniciar
 actualizarTabla();
