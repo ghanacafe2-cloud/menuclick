@@ -74,6 +74,36 @@
         <tbody>
             </tbody>
     </table>
+    <hr>
+<h3>📊 Reporte de Ventas Detallado</h3>
+<div id="reporte-contenedor" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #1a3a5a;">
+    <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px;">
+        <div>
+            <p>💵 <strong>Efectivo</strong></p>
+            <span id="total-efectivo" style="font-size: 1.2rem; color: #27ae60;">$0,00</span>
+        </div>
+        <div>
+            <p>💳 <strong>Tarjeta</strong></p>
+            <span id="total-debito" style="font-size: 1.2rem; color: #2980b9;">$0,00</span>
+        </div>
+        <div>
+            <p>📱 <strong>QR / MP</strong></p>
+            <span id="total-qr" style="font-size: 1.2rem; color: #8e44ad;">$0,00</span>
+        </div>
+    </div>
+    <div style="text-align: center; border-top: 2px solid #ddd; pt-10">
+        <h2 style="margin-top: 15px;">TOTAL DEL DÍA: <span id="total-general" style="color: #1a3a5a;">$0,00</span></h2>
+    </div>
+    
+    <h4>🔥 Productos más vendidos</h4>
+    <ul id="lista-populares" style="list-style: none; padding: 0;">
+        <!-- Aquí aparecerán los más vendidos -->
+    </ul>
+
+    <button onclick="borrarHistorial()" style="background: #c0392b; color: white; padding: 10px; margin-top: 20px;">
+        🗑️ REINICIAR CAJA (Cierre de Turno)
+    </button>
+</div>
 </div>
 
 <script src="admin.js"></script>
