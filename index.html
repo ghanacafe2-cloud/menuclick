@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiosco El Cholo - POS</title>
+    <title>Kiosco - POS</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; margin: 0; }
         header { background: #1a3a5a; color: white; padding: 1rem; text-align: center; }
@@ -20,7 +20,7 @@
 <body>
 
 <header>
-    <h1>KIOSCO EL CHOLO - PUNTO DE VENTA</h1>
+    <h1>KIOSCO EL ... - PUNTO DE VENTA CHOLO</h1>
 </header>
 
 <div id="contenedor">
@@ -45,6 +45,11 @@
                 <option value="qr">MERCADO PAGO / QR</option>
             </select>
             <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
+            <div style="background: #fdfd96; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #d4d442;">
+    <label>💰 <strong>Paga con:</strong></label>
+    <input type="number" id="paga-con" placeholder="Monto recibido" oninput="calcularVuelto()" style="width: 100%; padding: 8px; margin-top: 5px;">
+    <p style="margin: 10px 0 0 0; font-size: 1.2rem;"><strong>Vuelto: <span id="vuelto-display">$0,00</span></strong></p>
+</div>
         </div>
     </div>
 </div>
