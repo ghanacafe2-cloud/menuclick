@@ -1,1 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Kiosco El Cholo - POS</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        header { background: #1a3a5a; color: white; padding: 1rem; text-align: center; }
+        #contenedor { display: flex; flex: 1; padding: 10px; gap: 10px; }
+        #ventas { flex: 2; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #totales { flex: 1; background: #fff; padding: 20px; border-radius: 8px; border: 2px solid #1a3a5a; display: flex; flex-direction: column; justify-content: space-between; }
+        .producto-fila { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding: 10px 0; align-items: center; }
+        input#codigo { width: 100%; padding: 10px; font-size: 1.2rem; margin-bottom: 10px; border: 2px solid #1a3a5a; border-radius: 5px; }
+        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.5rem; cursor: pointer; border-radius: 5px; }
+        .total-nro { font-size: 3rem; color: #1a3a5a; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
 
+<header>
+    <h1>KIOSCO EL CHOLO - PUNTO DE VENTA</h1>
+</header>
+
+<div id="contenedor">
+    <div id="ventas">
+        <!-- Input donde entra lo de la pistolita -->
+        <input type="text" id="codigo" placeholder="Escanee producto o escriba código..." autofocus>
+        
+        <div id="lista-productos">
+            <!-- Acá se van cargando los productos -->
+            <p style="color: gray;">Esperando escaneo...</p>
+        </div>
+    </div>
+
+    <div id="totales">
+        <div>
+            <h2>TOTAL</h2>
+            <div class="total-nro" id="total-display">$0,00</div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <select id="metodo-pago" style="padding: 10px; font-size: 1rem;">
+                <option value="efectivo">Efectivo</option>
+                <option value="debito">Tarjeta Débito</option>
+                <option value="qr">Mercado Pago / QR</option>
+            </select>
+            <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Aquí iría la lógica de JavaScript para buscar en el JSON y sumar
+    function finalizarVenta() {
+        const metodo = document.getElementById('metodo-pago').value;
+        const total = document.getElementById('total-display').innerText;
+        alert(`Venta finalizada por ${total}. Pago: ${metodo.toUpperCase()}\n\n¡Caja actualizada!`);
+        location.reload(); // Limpia para la próxima venta
+    }
+</script>
+
+</body>
+</html>
