@@ -60,11 +60,39 @@ function eliminarProducto(index) {
     }
 }
 
+function descargarRespaldo() {
+    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    if (ventas.length === 0) return alert("No hay ventas para respaldar.");
+
+    // Formateamos el texto para que sea legible en el escritorio
+    let contenido = "REPORTE DE VENTAS - KIOSCO EL CHOLO\n";
+    contenido += "Fecha: " + new Date().toLocaleDateString() + "\n";
+    contenido += "---------------------------------------\n";
+    
+    ventas.forEach(v => {
+        contenido += `[${v.fecha}] Total: $${v.total} - Pago: ${v.metodo}\n`;
+        v.items.forEach(item => {
+            contenido += `   > ${item.nombre}: $${item.precio}\n`;
+        });
+        contenido += "---------------------------------------\n";
+    });
+
+    // Crear el archivo para descargar
+    const blob = new Blob([contenido], { type: 'text/plain' });
+    const archivo = document.createElement('a');
+    archivo.href = URL.createObjectURL(blob);
+    archivo.download = `Cierre_Caja_${new Date().toLocaleDateString()}.txt`;
+    archivo.click();
+}
+
 function borrarVentas() {
-    if (confirm("¿Reiniciar la caja a cero?")) {
+    if (confirm("¿Cholo, ya descargaste el respaldo? Si reiniciás sin bajar el archivo, perdés los datos de hoy.")) {
+        descargarRespaldo(); // Forzamos la descarga antes de borrar
         localStorage.removeItem('ventas_realizadas');
         actualizarTodo();
+        alert("Caja reiniciada y archivo descargado. ¡Guardalo en tu carpeta del escritorio!");
     }
+}
 }
 
 actualizarTodo();
