@@ -2,17 +2,19 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kiosco El Cholo - POS</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; margin: 0; }
         header { background: #1a3a5a; color: white; padding: 1rem; text-align: center; }
-        #contenedor { display: flex; flex: 1; padding: 10px; gap: 10px; }
-        #ventas { flex: 2; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #contenedor { display: flex; flex: 1; padding: 10px; gap: 10px; overflow: hidden; }
+        #ventas { flex: 2; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-y: auto; }
         #totales { flex: 1; background: #fff; padding: 20px; border-radius: 8px; border: 2px solid #1a3a5a; display: flex; flex-direction: column; justify-content: space-between; }
         .producto-fila { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding: 10px 0; align-items: center; }
-        input#codigo { width: 100%; padding: 10px; font-size: 1.2rem; margin-bottom: 10px; border: 2px solid #1a3a5a; border-radius: 5px; }
-        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.5rem; cursor: pointer; border-radius: 5px; }
-        .total-nro { font-size: 3rem; color: #1a3a5a; font-weight: bold; text-align: center; }
+        input#codigo { width: 100%; padding: 15px; font-size: 1.2rem; margin-bottom: 10px; border: 2px solid #1a3a5a; border-radius: 5px; box-sizing: border-box; }
+        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.5rem; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .total-nro { font-size: 3.5rem; color: #1a3a5a; font-weight: bold; text-align: center; margin: 20px 0; }
+        .btn-eliminar { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -23,41 +25,30 @@
 
 <div id="contenedor">
     <div id="ventas">
-        <!-- Input donde entra lo de la pistolita -->
-        <input type="text" id="codigo" placeholder="Escanee producto o escriba código..." autofocus>
-        
+        <input type="text" id="codigo" placeholder="Gatille la pistolita aquí..." autofocus>
         <div id="lista-productos">
-            <!-- Acá se van cargando los productos -->
-            <p style="color: gray;">Esperando escaneo...</p>
+            <p style="color: gray; text-align: center;">Esperando escaneo de producto...</p>
         </div>
     </div>
 
     <div id="totales">
         <div>
-            <h2>TOTAL</h2>
+            <h2 style="text-align: center; margin: 0;">TOTAL A COBRAR</h2>
             <div class="total-nro" id="total-display">$0,00</div>
         </div>
         
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <select id="metodo-pago" style="padding: 10px; font-size: 1rem;">
-                <option value="efectivo">Efectivo</option>
-                <option value="debito">Tarjeta Débito</option>
-                <option value="qr">Mercado Pago / QR</option>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <label>Medio de Pago:</label>
+            <select id="metodo-pago" style="padding: 12px; font-size: 1.1rem; border-radius: 5px;">
+                <option value="efectivo">EFECTIVO</option>
+                <option value="debito">DÉBITO / CRÉDITO</option>
+                <option value="qr">MERCADO PAGO / QR</option>
             </select>
             <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
         </div>
     </div>
 </div>
 
-<script>
-    // Aquí iría la lógica de JavaScript para buscar en el JSON y sumar
-    function finalizarVenta() {
-        const metodo = document.getElementById('metodo-pago').value;
-        const total = document.getElementById('total-display').innerText;
-        alert(`Venta finalizada por ${total}. Pago: ${metodo.toUpperCase()}\n\n¡Caja actualizada!`);
-        location.reload(); // Limpia para la próxima venta
-    }
-</script>
 <script src="script.js"></script>
 </body>
 </html>
