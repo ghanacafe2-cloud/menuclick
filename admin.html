@@ -52,6 +52,14 @@
     <button class="btn-save" onclick="guardarProducto()">GUARDAR PRODUCTO</button>
 
     <hr>
+    <h3>Cierre de Caja (Ventas del Día)</h3>
+    <div id="reporte-ventas" style="background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
+        <p><strong>Total en Efectivo:</strong> <span id="total-efectivo">$0</span></p>
+        <p><strong>Total Tarjeta/Débito:</strong> <span id="total-debito">$0</span></p>
+        <p><strong>Total Mercado Pago/QR:</strong> <span id="total-qr">$0</span></p>
+        <h2 style="color: #1a3a5a;">TOTAL GENERAL: <span id="total-general">$0</span></h2>
+        <button onclick="borrarVentas()" style="background:#e74c3c; color:white; width: auto; padding: 5px 10px;">Reiniciar Caja Diaria</button>
+    </div>
 
     <h3>Lista de Precios</h3>
     <table id="tabla-productos">
