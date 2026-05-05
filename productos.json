@@ -1,0 +1,26 @@
+[
+  {
+    "id": "7790070411730",
+    "nombre": "Yerba Mate 500g",
+    "precio": 2500,
+    "stock": 10,
+    "imagen": "https://via.placeholder.com/100",
+    "tipo": "fijo"
+  },
+  {
+    "id": "PAN",
+    "nombre": "Pan Francés (kg)",
+    "precio": 0,
+    "stock": 999,
+    "imagen": "https://via.placeholder.com/100",
+    "tipo": "variable"
+  },
+  {
+    "id": "7791234567890",
+    "nombre": "Alfajor Triple",
+    "precio": 900,
+    "stock": 24,
+    "imagen": "https://via.placeholder.com/100",
+    "tipo": "fijo"
+  }
+]
