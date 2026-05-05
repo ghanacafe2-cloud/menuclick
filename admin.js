@@ -78,3 +78,40 @@ function borrarVentas() {
 mostrarReporte();
 // Cargar tabla al iniciar
 actualizarTabla();
+function actualizarReporte() {
+    // Buscamos las ventas guardadas por el mostrador
+    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    let efec = 0, tarj = 0, qr = 0;
+    let totalAcumulado = 0;
+    let conteoProductos = {};
+
+    ventas.forEach(venta => {
+        totalAcumulado += venta.total;
+        
+        // OJO: Los nombres deben ser EXACTOS a como vienen del index.html
+        if (venta.metodo === 'efectivo') efec += venta.total;
+        if (venta.metodo === 'debito') tarj += venta.total;
+        if (venta.metodo === 'qr') qr += venta.total;
+
+        venta.items.forEach(item => {
+            conteoProductos[item.nombre] = (conteoProductos[item.nombre] || 0) + 1;
+        });
+    });
+
+    // Inyectamos los datos en el HTML del Admin
+    if(document.getElementById('total-efectivo')) document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString('es-AR')}`;
+    if(document.getElementById('total-debito')) document.getElementById('total-debito').innerText = `$${tarj.toLocaleString('es-AR')}`;
+    if(document.getElementById('total-qr')) document.getElementById('total-qr').innerText = `$${qr.toLocaleString('es-AR')}`;
+    if(document.getElementById('total-general')) document.getElementById('total-general').innerText = `$${totalAcumulado.toLocaleString('es-AR')}`;
+
+    const listaPopulares = document.getElementById('lista-populares');
+    if(listaPopulares) {
+        const populares = Object.entries(conteoProductos).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        listaPopulares.innerHTML = populares.length > 0 
+            ? populares.map(p => `<li>✅ ${p[0]}: ${p[1]} unidades</li>`).join('')
+            : "<li>Sin ventas hoy</li>";
+    }
+}
+
+// Asegurate de llamar a la función al final del archivo
+actualizarReporte();
