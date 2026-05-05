@@ -115,3 +115,7 @@ function actualizarReporte() {
 
 // Asegurate de llamar a la función al final del archivo
 actualizarReporte();
+// Forzar que el cursor vuelva al buscador después de cerrar cualquier alerta
+window.onclick = function() {
+    document.getElementById('codigo').focus();
+};
