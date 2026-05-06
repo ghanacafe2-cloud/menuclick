@@ -1,4 +1,4 @@
-const USERNAME = "TU_USUARIO_GITHUB"; // CAMBIÁ ESTO
+const USERNAME = "TU_USUARIO_AQUÍ"; // CAMBIÁ ESTO POR TU NOMBRE DE USUARIO
 const REPO = "ghanacafe2-cloud";
 const BRANCH = "main";
 const FILE_PATH = "productos.json";
@@ -11,36 +11,43 @@ function guardarToken() {
     localStorage.setItem('github_token', t);
     validarToken();
 }
+
 function borrarToken() {
     localStorage.removeItem('github_token');
     location.reload();
 }
+
 async function validarToken() {
     const token = localStorage.getItem('github_token');
     const status = document.getElementById('token-status');
+    if (token) {
+        document.getElementById('gh-token').value = token; // Muestra que ya hay uno
+    }
     if (!token) { status.innerText = "❌ Sin Token"; return; }
     
     try {
         const res = await fetch('https://api.github.com/user', { headers: { Authorization: `token ${token}` } });
-        if (res.ok) { status.innerText = "✅ Conectado a GitHub"; status.style.color = "green"; }
+        if (res.ok) { 
+            const data = await res.json();
+            status.innerText = `✅ Conectado como: ${data.login}`; 
+            status.style.color = "green"; 
+        }
         else { status.innerText = "⚠️ Token inválido"; status.style.color = "red"; }
     } catch (e) { status.innerText = "Error de conexión"; }
 }
 
-// --- FUNCIÓN MÁGICA PARA SUBIR A GITHUB ---
+// --- FUNCIÓN PARA SUBIR A GITHUB ---
 async function subirAGithub(data) {
     const token = localStorage.getItem('github_token');
     if (!token) return console.log("No hay token, solo se guarda local.");
 
     try {
-        // 1. Obtener el SHA del archivo actual (necesario para actualizar)
         const resInfo = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
             headers: { Authorization: `token ${token}` }
         });
         let sha = undefined;
         if (resInfo.ok) { const json = await resInfo.json(); sha = json.sha; }
 
-        // 2. Subir el nuevo contenido
         const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
         const res = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
             method: 'PUT',
@@ -48,11 +55,11 @@ async function subirAGithub(data) {
             body: JSON.stringify({ message: "Update inventario via Admin", content, sha, branch: BRANCH })
         });
 
-        if (res.ok) alert("✅ Sincronizado con GitHub con éxito!");
+        if (res.ok) console.log("Sincronizado con GitHub.");
     } catch (e) { console.error("Error al subir:", e); }
 }
 
-// --- GUARDAR PRODUCTO (LOCAL + NUBE) ---
+// --- GUARDAR PRODUCTO ---
 async function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
     const nombre = document.getElementById('admin-nombre').value.trim();
@@ -65,16 +72,76 @@ async function guardarProducto() {
     if (index > -1) inventario[index] = { id, nombre, precio, tipo };
     else inventario.push({ id, nombre, precio, tipo });
 
-    // Guardamos en PC
     localStorage.setItem('inventario', JSON.stringify(inventario));
     
-    // Subimos a la nube
+    // Mostramos un aviso de "Cargando" en el botón
+    const btn = document.getElementById('btn-guardar');
+    if(btn) btn.innerText = "⏳ SUBIENDO...";
+
     await subirAGithub(inventario);
 
+    if(btn) btn.innerText = "💾 GUARDAR EN LISTA";
+    
     actualizarTodo();
     limpiarFormulario();
 }
 
-// ... (Mantené tus funciones de eliminarProducto y actualizarTodo de antes)
+// --- ACTUALIZAR TABLA Y REPORTE ---
+function actualizarTodo() {
+    // 1. Tabla de productos
+    const tbody = document.querySelector('#tabla-productos tbody');
+    if(tbody) {
+        tbody.innerHTML = '';
+        inventario.forEach((prod, index) => {
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td>${prod.id}</td>
+                <td>${prod.nombre}</td>
+                <td>$${prod.precio.toLocaleString('es-AR')}</td>
+                <td><button class="btn-danger" onclick="eliminarProducto(${index})">Borrar</button></td>
+            `;
+            tbody.appendChild(fila);
+        });
+    }
 
+    // 2. Reporte de Ventas
+    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    let efec = 0, tarj = 0, qr = 0;
+    ventas.forEach(v => {
+        if (v.metodo === 'efectivo') efec += v.total;
+        if (v.metodo === 'debito') tarj += v.total;
+        if (v.metodo === 'qr') qr += v.total;
+    });
+
+    if(document.getElementById('total-efectivo')) document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString('es-AR')}`;
+    if(document.getElementById('total-debito')) document.getElementById('total-debito').innerText = `$${tarj.toLocaleString('es-AR')}`;
+    if(document.getElementById('total-qr')) document.getElementById('total-qr').innerText = `$${qr.toLocaleString('es-AR')}`;
+    if(document.getElementById('total-general')) document.getElementById('total-general').innerText = `$${(efec + tarj + qr).toLocaleString('es-AR')}`;
+}
+
+function eliminarProducto(index) {
+    if (confirm("¿Borrar este producto?")) {
+        inventario.splice(index, 1);
+        localStorage.setItem('inventario', JSON.stringify(inventario));
+        subirAGithub(inventario); // También actualiza la nube al borrar
+        actualizarTodo();
+    }
+}
+
+function limpiarFormulario() {
+    document.getElementById('admin-codigo').value = '';
+    document.getElementById('admin-nombre').value = '';
+    document.getElementById('admin-precio').value = '';
+    document.getElementById('admin-codigo').focus();
+}
+
+function borrarVentas() {
+    if (confirm("¿Reiniciar la caja a cero?")) {
+        localStorage.removeItem('ventas_realizadas');
+        actualizarTodo();
+    }
+}
+
+// Iniciar
 validarToken();
+actualizarTodo();
