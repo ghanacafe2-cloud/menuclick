@@ -3,20 +3,18 @@ let productosDB = [];
 let carrito = [];
 let totalVenta = 0;
 
-// 1. CARGA DE DATOS: Prioriza lo que cargaste en el Admin (LocalStorage)
+// 1. CARGA DE DATOS
 function cargarInventario() {
     const datosLocales = localStorage.getItem('inventario');
-    
     if (datosLocales) {
         productosDB = JSON.parse(datosLocales);
-        console.log("Inventario cargado desde la memoria local.");
+        console.log("Inventario cargado.");
     } else {
-        // Si no hay nada, cargamos unos de ejemplo para que no esté vacío
+        // Ejemplos por si recién empezás
         productosDB = [
             { id: "PAN", nombre: "Pan Francés (kg)", precio: 0, tipo: "variable" },
-            { id: "7790070411730", nombre: "Yerba Mate (Ejemplo)", precio: 2500, tipo: "fijo" }
+            { id: "7790070411730", nombre: "Yerba Mate", precio: 2500, tipo: "fijo" }
         ];
-        console.log("Usando productos de ejemplo.");
     }
 }
 
@@ -29,25 +27,22 @@ if (inputCodigo) {
             if (codigoLeido !== "") {
                 procesarEscaneo(codigoLeido);
             }
-            inputCodigo.value = ''; // Limpia para el siguiente
+            inputCodigo.value = ''; 
         }
     });
 }
 
-// 3. LÓGICA DE BÚSQUEDA
+// 3. LÓGICA DE ESCANEO
 function procesarEscaneo(codigo) {
-    // Buscamos en la base que cargamos al inicio
     const producto = productosDB.find(p => p.id === codigo);
 
     if (producto) {
         if (producto.tipo === "variable") {
-            // Caso Pan/Fiambre
             const precioManual = parseFloat(prompt(`Precio para ${producto.nombre}:`));
             if (!isNaN(precioManual) && precioManual > 0) {
                 agregarAlCarrito(producto.nombre, precioManual);
             }
         } else {
-            // Producto común
             agregarAlCarrito(producto.nombre, producto.precio);
         }
     } else {
@@ -75,12 +70,15 @@ function renderizarCarrito() {
         fila.innerHTML = `
             <span><strong>${item.nombre}</strong></span>
             <span>$${item.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
-            <button class="btn-eliminar" onclick="quitarItem(${index})">X</button>
+            <button class="btn-eliminar" onclick="quitarItem(${index})">❌</button>
         `;
         lista.appendChild(fila);
     });
 
     displayTotal.innerText = `$${totalVenta.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+    
+    // IMPORTANTE: Recalcular vuelto cuando cambia el carrito
+    calcularVuelto(); 
 }
 
 function quitarItem(index) {
@@ -88,13 +86,34 @@ function quitarItem(index) {
     renderizarCarrito();
 }
 
-// 5. FINALIZAR VENTA Y CIERRE
+// 5. CALCULADORA DE VUELTO (NUEVA)
+function calcularVuelto() {
+    const pagaCon = parseFloat(document.getElementById('paga-con').value) || 0;
+    const vueltoDisplay = document.getElementById('vuelto-display');
+    
+    if (pagaCon === 0) {
+        vueltoDisplay.innerText = "$0,00";
+        vueltoDisplay.style.color = "#2e7d32";
+        return;
+    }
+
+    const vuelto = pagaCon - totalVenta;
+
+    if (vuelto < 0) {
+        vueltoDisplay.innerText = "Falta dinero";
+        vueltoDisplay.style.color = "red";
+    } else {
+        vueltoDisplay.innerText = `$${vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+        vueltoDisplay.style.color = "#2e7d32";
+    }
+}
+
+// 6. FINALIZAR VENTA
 function finalizarVenta() {
     if (carrito.length === 0) return alert("El carrito está vacío");
 
     const metodo = document.getElementById('metodo-pago').value;
     
-    // GUARDAR EN HISTORIAL (Para el cierre de caja futuro)
     const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     const nuevaVenta = {
         fecha: new Date().toLocaleString(),
@@ -102,16 +121,23 @@ function finalizarVenta() {
         metodo: metodo,
         items: [...carrito]
     };
+    
     ventasHistoricas.push(nuevaVenta);
     localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
 
-    alert(`VENTA EXITOSA\nTotal: $${totalVenta}\nPago: ${metodo.toUpperCase()}`);
+    alert(`✅ VENTA EXITOSA\nTotal: $${totalVenta.toLocaleString('es-AR')}\nPago: ${metodo.toUpperCase()}`);
     
-    // Reiniciar
+    // Reiniciar para el próximo cliente
     carrito = [];
+    document.getElementById('paga-con').value = ''; // Limpiar calculadora
     renderizarCarrito();
     if(inputCodigo) inputCodigo.focus();
 }
 
-// Iniciar sistema
+// Asegurar que el foco siempre vuelva a la pistolita
+window.onclick = function() {
+    if(inputCodigo) inputCodigo.focus();
+};
+
+// Iniciar
 cargarInventario();
