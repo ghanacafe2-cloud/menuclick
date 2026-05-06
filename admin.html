@@ -50,8 +50,10 @@
     <label>🔑 <strong>GitHub Token:</strong></label>
     <div style="display: flex; gap: 10px; margin-top: 5px;">
         <input type="password" id="gh-token" placeholder="Pegar Token aquí..." style="flex: 1;">
-        <button onclick="guardarToken()" style="background: #e67e22; width: auto;">Validar</button>
-        <button onclick="borrarToken()" style="background: #95a5a6; width: auto;">Limpiar</button>
+      <button type="button" onclick="guardarToken()" style="background: #e67e22; width: auto;">Validar</button>
+<button type="button" onclick="borrarToken()" style="background: #95a5a6; width: auto;">Limpiar</button>
+
+<button type="button" id="btn-guardar" class="btn-save" onclick="guardarProducto()">💾 GUARDAR EN LISTA</button>
     </div>
     <small id="token-status" style="font-weight: bold;"></small>
 </div>
@@ -64,7 +66,7 @@
         <option value="fijo">Precio Fijo</option>
         <option value="variable">Precio Variable (Pan/Fiambre)</option>
     </select>
-    <button class="btn-save" onclick="guardarProducto()">💾 GUARDAR EN LISTA</button>
+ <button class="btn-save" onclick="guardarProducto()">💾 GUARDAR EN LISTA</button>
 
     <hr style="margin: 40px 0;">
 
