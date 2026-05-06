@@ -1,38 +1,59 @@
+const USERNAME = "TU_USUARIO_GITHUB"; // CAMBIÁ ESTO
+const REPO = "ghanacafe2-cloud";
+const BRANCH = "main";
+const FILE_PATH = "productos.json";
+
 let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
 
-function actualizarTodo() {
-    // 1. Mostrar Lista de Precios
-    const tbody = document.querySelector('#tabla-productos tbody');
-    tbody.innerHTML = '';
-    inventario.forEach((prod, index) => {
-        const fila = document.createElement('tr');
-        fila.innerHTML = `
-            <td>${prod.id}</td>
-            <td>${prod.nombre}</td>
-            <td>$${prod.precio}</td>
-            <td><button class="btn-danger" onclick="eliminarProducto(${index})">Borrar</button></td>
-        `;
-        tbody.appendChild(fila);
-    });
-
-    // 2. Calcular Reporte de Ventas
-    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    let efec = 0, tarj = 0, qr = 0;
-
-    ventas.forEach(v => {
-        // IMPORTANTE: Estos nombres deben ser iguales a los 'value' del select en index.html
-        if (v.metodo === 'efectivo') efec += v.total;
-        if (v.metodo === 'debito') tarj += v.total;
-        if (v.metodo === 'qr') qr += v.total;
-    });
-
-    document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString('es-AR')}`;
-    document.getElementById('total-debito').innerText = `$${tarj.toLocaleString('es-AR')}`;
-    document.getElementById('total-qr').innerText = `$${qr.toLocaleString('es-AR')}`;
-    document.getElementById('total-general').innerText = `$${(efec + tarj + qr).toLocaleString('es-AR')}`;
+// --- GESTIÓN DE TOKEN ---
+function guardarToken() {
+    const t = document.getElementById('gh-token').value.trim();
+    localStorage.setItem('github_token', t);
+    validarToken();
+}
+function borrarToken() {
+    localStorage.removeItem('github_token');
+    location.reload();
+}
+async function validarToken() {
+    const token = localStorage.getItem('github_token');
+    const status = document.getElementById('token-status');
+    if (!token) { status.innerText = "❌ Sin Token"; return; }
+    
+    try {
+        const res = await fetch('https://api.github.com/user', { headers: { Authorization: `token ${token}` } });
+        if (res.ok) { status.innerText = "✅ Conectado a GitHub"; status.style.color = "green"; }
+        else { status.innerText = "⚠️ Token inválido"; status.style.color = "red"; }
+    } catch (e) { status.innerText = "Error de conexión"; }
 }
 
-function guardarProducto() {
+// --- FUNCIÓN MÁGICA PARA SUBIR A GITHUB ---
+async function subirAGithub(data) {
+    const token = localStorage.getItem('github_token');
+    if (!token) return console.log("No hay token, solo se guarda local.");
+
+    try {
+        // 1. Obtener el SHA del archivo actual (necesario para actualizar)
+        const resInfo = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
+            headers: { Authorization: `token ${token}` }
+        });
+        let sha = undefined;
+        if (resInfo.ok) { const json = await resInfo.json(); sha = json.sha; }
+
+        // 2. Subir el nuevo contenido
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+        const res = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
+            method: 'PUT',
+            headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: "Update inventario via Admin", content, sha, branch: BRANCH })
+        });
+
+        if (res.ok) alert("✅ Sincronizado con GitHub con éxito!");
+    } catch (e) { console.error("Error al subir:", e); }
+}
+
+// --- GUARDAR PRODUCTO (LOCAL + NUBE) ---
+async function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
     const nombre = document.getElementById('admin-nombre').value.trim();
     const precio = parseFloat(document.getElementById('admin-precio').value);
@@ -44,68 +65,16 @@ function guardarProducto() {
     if (index > -1) inventario[index] = { id, nombre, precio, tipo };
     else inventario.push({ id, nombre, precio, tipo });
 
+    // Guardamos en PC
     localStorage.setItem('inventario', JSON.stringify(inventario));
+    
+    // Subimos a la nube
+    await subirAGithub(inventario);
+
     actualizarTodo();
-    document.getElementById('admin-codigo').value = '';
-    document.getElementById('admin-nombre').value = '';
-    document.getElementById('admin-precio').value = '';
-    document.getElementById('admin-codigo').focus();
+    limpiarFormulario();
 }
 
-function eliminarProducto(index) {
-    if (confirm("¿Borrar producto?")) {
-        inventario.splice(index, 1);
-        localStorage.setItem('inventario', JSON.stringify(inventario));
-        actualizarTodo();
-    }
-}
+// ... (Mantené tus funciones de eliminarProducto y actualizarTodo de antes)
 
-function descargarRespaldo() {
-    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    if (ventas.length === 0) return alert("No hay ventas para respaldar.");
-
-    // Formateamos el texto para que sea legible en el escritorio
-    let contenido = "REPORTE DE VENTAS - KIOSCO EL CHOLO\n";
-    contenido += "Fecha: " + new Date().toLocaleDateString() + "\n";
-    contenido += "---------------------------------------\n";
-    
-    ventas.forEach(v => {
-        contenido += `[${v.fecha}] Total: $${v.total} - Pago: ${v.metodo}\n`;
-        v.items.forEach(item => {
-            contenido += `   > ${item.nombre}: $${item.precio}\n`;
-        });
-        contenido += "---------------------------------------\n";
-    });
-
-    // Crear el archivo para descargar
-    const blob = new Blob([contenido], { type: 'text/plain' });
-    const archivo = document.createElement('a');
-    archivo.href = URL.createObjectURL(blob);
-    archivo.download = `Cierre_Caja_${new Date().toLocaleDateString()}.txt`;
-    archivo.click();
-}
-
-function borrarVentas() {
-    if (confirm("¿Cholo, ya descargaste el respaldo? Si reiniciás sin bajar el archivo, perdés los datos de hoy.")) {
-        descargarRespaldo(); // Forzamos la descarga antes de borrar
-        localStorage.removeItem('ventas_realizadas');
-        actualizarTodo();
-        alert("Caja reiniciada y archivo descargado. ¡Guardalo en tu carpeta del escritorio!");
-    }
-}
-}
-
-actualizarTodo();
-function calcularVuelto() {
-    const pagaCon = parseFloat(document.getElementById('paga-con').value) || 0;
-    const vuelto = pagaCon - totalVenta;
-    const displayVuelto = document.getElementById('vuelto-display');
-    
-    if (vuelto < 0) {
-        displayVuelto.innerText = "Falta dinero";
-        displayVuelto.style.color = "red";
-    } else {
-        displayVuelto.innerText = `$${vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
-        displayVuelto.style.color = "green";
-    }
-}
+validarToken();
