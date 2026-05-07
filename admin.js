@@ -145,6 +145,73 @@ function borrarVentas() {
         actualizarTodo();
     }
 }
+// --- SISTEMA DE FIADOS ---
+let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
+
+function agregarFiado() {
+    const cliente = document.getElementById('fiado-cliente').value.trim();
+    const monto = parseFloat(document.getElementById('fiado-monto').value);
+
+    if (!cliente || isNaN(monto)) return alert("Completá nombre y monto");
+
+    const index = fiados.findIndex(f => f.cliente.toUpperCase() === cliente.toUpperCase());
+    if (index > -1) {
+        fiados[index].monto += monto;
+    } else {
+        fiados.push({ cliente, monto });
+    }
+
+    localStorage.setItem('fiados', JSON.stringify(fiados));
+    document.getElementById('fiado-cliente').value = '';
+    document.getElementById('fiado-monto').value = '';
+    actualizarTodo();
+}
+
+function cobrarFiado(index) {
+    if (confirm(`¿El cliente pagó toda la deuda?`)) {
+        fiados.splice(index, 1);
+        localStorage.setItem('fiados', JSON.stringify(fiados));
+        actualizarTodo();
+    }
+}
+
+// --- ACTUALIZAR TODO (MEJORADO CON STOCK Y FIADOS) ---
+function actualizarTodo() {
+    // ... (Mantené tu código de sumar ventas aquí) ...
+
+    // TABLA DE PRODUCTOS CON ALERTA DE STOCK
+    const tbodyProd = document.querySelector('#tabla-productos tbody');
+    if(tbodyProd) {
+        tbodyProd.innerHTML = '';
+        inventario.forEach((prod, index) => {
+            const stockClase = prod.stock <= 3 ? 'status-low' : 'status-ok';
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td>${prod.id}</td>
+                <td>${prod.nombre}</td>
+                <td>$${prod.precio.toLocaleString('es-AR')}</td>
+                <td class="${stockClase}">${prod.stock} un.</td>
+                <td><button class="btn-danger" onclick="eliminarProducto(${index})">🗑️</button></td>
+            `;
+            tbodyProd.appendChild(fila);
+        });
+    }
+
+    // TABLA DE FIADOS
+    const tbodyFiados = document.querySelector('#tabla-fiados tbody');
+    if(tbodyFiados) {
+        tbodyFiados.innerHTML = '';
+        fiados.forEach((f, index) => {
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td><strong>${f.cliente}</strong></td>
+                <td style="color: #ff5252;">$${f.monto.toLocaleString('es-AR')}</td>
+                <td><button onclick="cobrarFiado(${index})" style="background:#4caf50; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">✅ PAGÓ</button></td>
+            `;
+            tbodyFiados.appendChild(fila);
+        });
+    }
+}
 
 // Iniciar
 validarToken();
