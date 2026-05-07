@@ -34,5 +34,11 @@
     "nombre": "celular",
     "precio": 354532,
     "tipo": "fijo"
+  },
+  {
+    "id": "8480017534606",
+    "nombre": "fritolin",
+    "precio": 3200,
+    "tipo": "fijo"
   }
 ]
