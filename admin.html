@@ -83,6 +83,23 @@
         <tbody></tbody>
     </table>
 </div>
+    <hr style="border-color: #333; margin: 40px 0;">
+<h3>👥 LIBRETA DE FIADOS</h3>
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+    <input type="text" id="fiado-cliente" placeholder="Nombre del Cliente" style="flex: 2;">
+    <input type="number" id="fiado-monto" placeholder="Monto $" style="flex: 1;">
+    <button onclick="agregarFiado()" class="btn-save" style="flex: 1; margin-bottom: 10px;">➕ ANOTAR</button>
+</div>
+<table id="tabla-fiados">
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>Deuda Total</th>
+            <th>Acción</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
 
 <script src="admin.js"></script>
 </body>
