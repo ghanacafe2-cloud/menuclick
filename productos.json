@@ -40,5 +40,12 @@
     "nombre": "fritolin",
     "precio": 3200,
     "tipo": "fijo"
+  },
+  {
+    "id": "7798151693020",
+    "nombre": "leche",
+    "precio": 4200,
+    "tipo": "fijo",
+    "stock": 30
   }
 ]
