@@ -68,15 +68,24 @@ async function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
     const nombre = document.getElementById('admin-nombre').value.trim();
     const precio = parseFloat(document.getElementById('admin-precio').value);
+    const stock = parseInt(document.getElementById('admin-stock').value) || 0; // NUEVO
     const tipo = document.getElementById('admin-tipo').value;
 
-    if (!id || !nombre || isNaN(precio)) return alert("Faltan datos o el precio es inválido");
+    if (!id || !nombre || isNaN(precio)) return alert("Faltan datos");
 
     const index = inventario.findIndex(p => p.id === id);
-    if (index > -1) inventario[index] = { id, nombre, precio, tipo };
-    else inventario.push({ id, nombre, precio, tipo });
+    // Agregamos el stock al objeto del producto
+    if (index > -1) {
+        inventario[index] = { id, nombre, precio, tipo, stock };
+    } else {
+        inventario.push({ id, nombre, precio, tipo, stock });
+    }
 
     localStorage.setItem('inventario', JSON.stringify(inventario));
+    // ... resto del código para subir a GitHub ...
+    actualizarTodo();
+    limpiarFormulario();
+}
     
     const btn = document.getElementById('btn-guardar');
     if(btn) btn.innerText = "⏳ SUBIENDO...";
