@@ -1,5 +1,5 @@
-const USERNAME = "menuclick"; // CAMBIÁ ESTO POR TU NOMBRE DE USUARIO
-const REPO = "ghanacafe2-cloud";
+const USERNAME = "ghanacafe2-cloud"; // CAMBIÁ ESTO POR TU NOMBRE DE USUARIO
+const REPO = "menuclick";
 const BRANCH = "main";
 const FILE_PATH = "productos.json";
 
