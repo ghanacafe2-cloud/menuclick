@@ -1,4 +1,4 @@
-const USERNAME = "TU_USUARIO_AQUÍ"; // CAMBIÁ ESTO POR TU NOMBRE DE USUARIO
+const USERNAME = "menuclick"; // CAMBIÁ ESTO POR TU NOMBRE DE USUARIO
 const REPO = "ghanacafe2-cloud";
 const BRANCH = "main";
 const FILE_PATH = "productos.json";
