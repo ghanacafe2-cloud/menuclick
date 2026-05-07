@@ -152,6 +152,38 @@ window.onclick = function(e) {
         if (inputCodigo) inputCodigo.focus();
     }
 };
+function enviarAFiado() {
+    if (carrito.length === 0) return alert("El carrito está vacío");
 
+    const cliente = prompt("¿A quién le anotamos este fiado?");
+    if (!cliente) return; // Si cancela, no hace nada
+
+    // 1. Traemos los fiados actuales del Admin
+    let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
+
+    // 2. Buscamos si el cliente ya debe algo
+    const index = fiados.findIndex(f => f.cliente.toUpperCase() === cliente.toUpperCase());
+    
+    if (index > -1) {
+        fiados[index].monto += totalVenta; // Suma a lo que ya debía
+    } else {
+        fiados.push({ cliente: cliente, monto: totalVenta }); // Cliente nuevo
+    }
+
+    // 3. Guardamos y descontamos stock (porque la mercadería se va)
+    localStorage.setItem('fiados', JSON.stringify(fiados));
+    
+    carrito.forEach(itemVendido => {
+        const productoEnDB = productosDB.find(p => p.nombre === itemVendido.nombre);
+        if (productoEnDB && productoEnDB.stock > 0) productoEnDB.stock -= 1;
+    });
+    localStorage.setItem('inventario', JSON.stringify(productosDB));
+
+    alert(`📝 Anotado en la cuenta de ${cliente}\nTotal nuevo fiado: $${totalVenta.toLocaleString('es-AR')}`);
+
+    // 4. Limpiamos el mostrador
+    carrito = [];
+    renderizarCarrito();
+}
 // Iniciar
 cargarInventario();
