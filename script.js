@@ -88,44 +88,51 @@ function quitarItem(index) {
 
 // 5. CALCULADORA DE VUELTO (NUEVA)
 function calcularVuelto() {
-    const pagaCon = parseFloat(document.getElementById('paga-con').value) || 0;
+    // 1. Obtenemos lo que el cliente te dio
+    const pagaConInput = document.getElementById('paga-con');
     const vueltoDisplay = document.getElementById('vuelto-display');
     
-    if (pagaCon === 0) {
-        vueltoDisplay.innerText = "$0,00";
-        vueltoDisplay.style.color = "#2e7d32";
-        return;
-    }
+    if (!pagaConInput || !vueltoDisplay) return;
 
+    const pagaCon = parseFloat(pagaConInput.value) || 0;
+
+    // 2. Calculamos la resta
     const vuelto = pagaCon - totalVenta;
 
-    if (vuelto < 0) {
+    // 3. Mostramos el resultado
+    if (pagaCon === 0) {
+        vueltoDisplay.innerText = "$0,00";
+        vueltoDisplay.style.color = "black";
+    } else if (vuelto < 0) {
         vueltoDisplay.innerText = "Falta dinero";
         vueltoDisplay.style.color = "red";
     } else {
         vueltoDisplay.innerText = `$${vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
-        vueltoDisplay.style.color = "#2e7d32";
+        vueltoDisplay.style.color = "green";
     }
 }
-
-// 6. FINALIZAR VENTA
-function finalizarVenta() {
-    if (carrito.length === 0) return alert("El carrito está vacío");
-
-    const metodo = document.getElementById('metodo-pago').value;
     
+    // IMPORTANTE: El nombre tiene que ser 'ventas_realizadas'
     const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    
     const nuevaVenta = {
         fecha: new Date().toLocaleString(),
-        total: totalVenta,
+        total: totalVenta, // Asegurate que esta variable global exista
         metodo: metodo,
         items: [...carrito]
     };
-    
+
     ventasHistoricas.push(nuevaVenta);
     localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
 
-    alert(`✅ VENTA EXITOSA\nTotal: $${totalVenta.toLocaleString('es-AR')}\nPago: ${metodo.toUpperCase()}`);
+    alert(`✅ VENTA GUARDADA\nTotal: $${totalVenta.toLocaleString('es-AR')}`);
+
+    // Limpiamos todo
+    carrito = [];
+    document.getElementById('paga-con').value = '';
+    renderizarCarrito();
+    if(document.getElementById('codigo')) document.getElementById('codigo').focus();
+}
     
     // Reiniciar para el próximo cliente
     carrito = [];
@@ -138,6 +145,22 @@ function finalizarVenta() {
 window.onclick = function() {
     if(inputCodigo) inputCodigo.focus();
 };
+function actualizarReporte() {
+    // EL MISMO NOMBRE: 'ventas_realizadas'
+    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    let efec = 0, deb = 0, qr = 0;
+
+    ventas.forEach(v => {
+        if (v.metodo === 'efectivo') efec += v.total;
+        if (v.metodo === 'debito') deb += v.total;
+        if (v.metodo === 'qr') qr += v.total;
+    });
+
+    // Actualizamos los cuadraditos del Admin
+    if(document.getElementById('total-efectivo')) document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString('es-AR')}`;
+    if(document.getElementById('total-debito')) document.getElementById('total-debito').innerText = `$${deb.toLocaleString('es-AR')}`;
+    if(document.getElementById('total-qr')) document.getElementById('total-qr').innerText = `$${qr.toLocaleString('es-AR')}`;
+}
 
 // Iniciar
 cargarInventario();
