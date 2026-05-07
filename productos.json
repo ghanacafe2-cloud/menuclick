@@ -1,26 +1,38 @@
 [
   {
-    "id": "7790070411730",
-    "nombre": "Yerba Mate 500g",
+    "id": "7790387800142",
+    "nombre": "Te Taragui",
+    "precio": 4000,
+    "tipo": "fijo"
+  },
+  {
+    "id": "7791661000333",
+    "nombre": "Bidón de agua Nestlé",
     "precio": 2500,
-    "stock": 10,
-    "imagen": "https://via.placeholder.com/100",
+    "tipo": "fijo"
+  },
+  {
+    "id": "7798048720907",
+    "nombre": "Maíz Pisingallo",
+    "precio": 1200,
+    "tipo": "fijo"
+  },
+  {
+    "id": "7790387015324",
+    "nombre": "Yerba Mananita 500 gr",
+    "precio": 2500,
     "tipo": "fijo"
   },
   {
     "id": "PAN",
-    "nombre": "Pan Francés (kg)",
-    "precio": 0,
-    "stock": 999,
-    "imagen": "https://via.placeholder.com/100",
+    "nombre": "pan",
+    "precio": 5000,
     "tipo": "variable"
   },
   {
-    "id": "7791234567890",
-    "nombre": "Alfajor Triple",
-    "precio": 900,
-    "stock": 24,
-    "imagen": "https://via.placeholder.com/100",
+    "id": "865192070210108",
+    "nombre": "celular",
+    "precio": 354532,
     "tipo": "fijo"
   }
 ]
