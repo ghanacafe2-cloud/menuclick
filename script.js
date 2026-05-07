@@ -3,14 +3,13 @@ let productosDB = [];
 let carrito = [];
 let totalVenta = 0;
 
-// 1. CARGA DE DATOS
+// 1. CARGA DE DATOS: Trae lo que guardaste en el Admin
 function cargarInventario() {
     const datosLocales = localStorage.getItem('inventario');
     if (datosLocales) {
         productosDB = JSON.parse(datosLocales);
         console.log("Inventario cargado.");
     } else {
-        // Ejemplos por si recién empezás
         productosDB = [
             { id: "PAN", nombre: "Pan Francés (kg)", precio: 0, tipo: "variable" },
             { id: "7790070411730", nombre: "Yerba Mate", precio: 2500, tipo: "fijo" }
@@ -60,6 +59,8 @@ function renderizarCarrito() {
     const lista = document.getElementById('lista-productos');
     const displayTotal = document.getElementById('total-display');
     
+    if (!lista || !displayTotal) return;
+
     lista.innerHTML = ''; 
     totalVenta = 0;
 
@@ -76,8 +77,6 @@ function renderizarCarrito() {
     });
 
     displayTotal.innerText = `$${totalVenta.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
-    
-    // IMPORTANTE: Recalcular vuelto cuando cambia el carrito
     calcularVuelto(); 
 }
 
@@ -86,20 +85,16 @@ function quitarItem(index) {
     renderizarCarrito();
 }
 
-// 5. CALCULADORA DE VUELTO (NUEVA)
+// 5. CALCULADORA DE VUELTO
 function calcularVuelto() {
-    // 1. Obtenemos lo que el cliente te dio
     const pagaConInput = document.getElementById('paga-con');
     const vueltoDisplay = document.getElementById('vuelto-display');
     
     if (!pagaConInput || !vueltoDisplay) return;
 
     const pagaCon = parseFloat(pagaConInput.value) || 0;
-
-    // 2. Calculamos la resta
     const vuelto = pagaCon - totalVenta;
 
-    // 3. Mostramos el resultado
     if (pagaCon === 0) {
         vueltoDisplay.innerText = "$0,00";
         vueltoDisplay.style.color = "black";
@@ -111,13 +106,19 @@ function calcularVuelto() {
         vueltoDisplay.style.color = "green";
     }
 }
+
+// 6. FINALIZAR VENTA (Aquí estaba el error, ahora está completa)
+function finalizarVenta() {
+    if (carrito.length === 0) return alert("El carrito está vacío");
+
+    const metodo = document.getElementById('metodo-pago').value;
     
-    // IMPORTANTE: El nombre tiene que ser 'ventas_realizadas'
+    // Guardamos con el nombre exacto que lee el Admin
     const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     
     const nuevaVenta = {
         fecha: new Date().toLocaleString(),
-        total: totalVenta, // Asegurate que esta variable global exista
+        total: totalVenta,
         metodo: metodo,
         items: [...carrito]
     };
@@ -127,45 +128,22 @@ function calcularVuelto() {
 
     alert(`✅ VENTA GUARDADA\nTotal: $${totalVenta.toLocaleString('es-AR')}`);
 
-    // Limpiamos todo
+    // Limpiamos todo para el próximo cliente
     carrito = [];
-    document.getElementById('paga-con').value = '';
+    const inputPaga = document.getElementById('paga-con');
+    if (inputPaga) inputPaga.value = '';
     renderizarCarrito();
-    if(document.getElementById('codigo')) document.getElementById('codigo').focus();
-}
     
-    // Reiniciar para el próximo cliente
-    carrito = [];
-    document.getElementById('paga-con').value = ''; // Limpiar calculadora
-    renderizarCarrito();
     if(inputCodigo) inputCodigo.focus();
 }
 
-// Este código es más "tranquilo" y te deja hacer clic en otros lados
+// 7. FOCO INTELIGENTE (No molesta cuando querés clickear botones)
 window.onclick = function(e) {
-    // Si hacés clic en un botón, un input o un selector, NO te roba el foco
     const elementosLibres = ['BUTTON', 'INPUT', 'SELECT', 'OPTION', 'TEXTAREA'];
     if (!elementosLibres.includes(e.target.tagName)) {
-        const inputCodigo = document.getElementById('codigo');
         if (inputCodigo) inputCodigo.focus();
     }
 };
-function actualizarReporte() {
-    // EL MISMO NOMBRE: 'ventas_realizadas'
-    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    let efec = 0, deb = 0, qr = 0;
-
-    ventas.forEach(v => {
-        if (v.metodo === 'efectivo') efec += v.total;
-        if (v.metodo === 'debito') deb += v.total;
-        if (v.metodo === 'qr') qr += v.total;
-    });
-
-    // Actualizamos los cuadraditos del Admin
-    if(document.getElementById('total-efectivo')) document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString('es-AR')}`;
-    if(document.getElementById('total-debito')) document.getElementById('total-debito').innerText = `$${deb.toLocaleString('es-AR')}`;
-    if(document.getElementById('total-qr')) document.getElementById('total-qr').innerText = `$${qr.toLocaleString('es-AR')}`;
-}
 
 // Iniciar
 cargarInventario();
