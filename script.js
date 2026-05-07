@@ -111,21 +111,19 @@ function calcularVuelto() {
 function finalizarVenta() {
     if (carrito.length === 0) return alert("El carrito está vacío");
 
-    const metodo = document.getElementById('metodo-pago').value;
+    // --- LÓGICA DE DESCUENTO DE STOCK ---
+    carrito.forEach(itemVendido => {
+        const productoEnDB = productosDB.find(p => p.nombre === itemVendido.nombre);
+        if (productoEnDB && productoEnDB.stock > 0) {
+            productoEnDB.stock -= 1; // Restamos uno
+        }
+    });
     
-    // Guardamos con el nombre exacto que lee el Admin
-    const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    // Guardamos el inventario actualizado con menos stock
+    localStorage.setItem('inventario', JSON.stringify(productosDB));
     
-    const nuevaVenta = {
-        fecha: new Date().toLocaleString(),
-        total: totalVenta,
-        metodo: metodo,
-        items: [...carrito]
-    };
-
-    ventasHistoricas.push(nuevaVenta);
-    localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
-
+    // ... acá sigue tu código de guardar ventasHistoricas y el alert ...
+}
     alert(`✅ VENTA GUARDADA\nTotal: $${totalVenta.toLocaleString('es-AR')}`);
 
     // Limpiamos todo para el próximo cliente
