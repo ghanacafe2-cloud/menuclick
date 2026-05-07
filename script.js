@@ -3,21 +3,22 @@ let productosDB = [];
 let carrito = [];
 let totalVenta = 0;
 
-// 1. CARGA DE DATOS: Trae lo que guardaste en el Admin
+// 1. CARGA DE DATOS
 function cargarInventario() {
     const datosLocales = localStorage.getItem('inventario');
     if (datosLocales) {
         productosDB = JSON.parse(datosLocales);
         console.log("Inventario cargado.");
     } else {
+        // Datos por defecto si el local está vacío
         productosDB = [
-            { id: "PAN", nombre: "Pan Francés (kg)", precio: 0, tipo: "variable" },
-            { id: "7790070411730", nombre: "Yerba Mate", precio: 2500, tipo: "fijo" }
+            { id: "PAN", nombre: "Pan Francés (kg)", precio: 0, tipo: "variable", stock: 999 },
+            { id: "7790070411730", nombre: "Yerba Mate", precio: 2500, tipo: "fijo", stock: 10 }
         ];
     }
 }
 
-// 2. ESCUCHA DE LA PISTOLITA
+// 2. ESCUCHA DE LA PISTOLITA (Corregido)
 const inputCodigo = document.getElementById('codigo');
 if (inputCodigo) {
     inputCodigo.addEventListener('keypress', (e) => {
@@ -107,26 +108,35 @@ function calcularVuelto() {
     }
 }
 
-// 6. FINALIZAR VENTA (Aquí estaba el error, ahora está completa)
+// 6. FINALIZAR VENTA (Corregida la llave que rompía todo)
 function finalizarVenta() {
     if (carrito.length === 0) return alert("El carrito está vacío");
+
+    const metodo = document.getElementById('metodo-pago').value;
 
     // --- LÓGICA DE DESCUENTO DE STOCK ---
     carrito.forEach(itemVendido => {
         const productoEnDB = productosDB.find(p => p.nombre === itemVendido.nombre);
         if (productoEnDB && productoEnDB.stock > 0) {
-            productoEnDB.stock -= 1; // Restamos uno
+            productoEnDB.stock -= 1;
         }
     });
     
-    // Guardamos el inventario actualizado con menos stock
+    // Guardar inventario con menos stock
     localStorage.setItem('inventario', JSON.stringify(productosDB));
-    
-    // ... acá sigue tu código de guardar ventasHistoricas y el alert ...
-}
+
+    // Guardar la venta en el historial para el Admin
+    const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    ventasHistoricas.push({
+        total: totalVenta,
+        metodo: metodo,
+        fecha: new Date().toISOString()
+    });
+    localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
+
     alert(`✅ VENTA GUARDADA\nTotal: $${totalVenta.toLocaleString('es-AR')}`);
 
-    // Limpiamos todo para el próximo cliente
+    // Limpiar para el próximo cliente
     carrito = [];
     const inputPaga = document.getElementById('paga-con');
     if (inputPaga) inputPaga.value = '';
@@ -135,7 +145,7 @@ function finalizarVenta() {
     if(inputCodigo) inputCodigo.focus();
 }
 
-// 7. FOCO INTELIGENTE (No molesta cuando querés clickear botones)
+// 7. FOCO INTELIGENTE
 window.onclick = function(e) {
     const elementosLibres = ['BUTTON', 'INPUT', 'SELECT', 'OPTION', 'TEXTAREA'];
     if (!elementosLibres.includes(e.target.tagName)) {
