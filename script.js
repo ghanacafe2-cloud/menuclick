@@ -141,11 +141,13 @@ function calcularVuelto() {
     if(inputCodigo) inputCodigo.focus();
 }
 
-// Solo devuelve el foco si el usuario no está haciendo clic en un botón o en la calculadora
+// Este código es más "tranquilo" y te deja hacer clic en otros lados
 window.onclick = function(e) {
-    const elementosLibres = ['BUTTON', 'INPUT', 'SELECT', 'OPTION'];
+    // Si hacés clic en un botón, un input o un selector, NO te roba el foco
+    const elementosLibres = ['BUTTON', 'INPUT', 'SELECT', 'OPTION', 'TEXTAREA'];
     if (!elementosLibres.includes(e.target.tagName)) {
-        if(inputCodigo) inputCodigo.focus();
+        const inputCodigo = document.getElementById('codigo');
+        if (inputCodigo) inputCodigo.focus();
     }
 };
 function actualizarReporte() {
