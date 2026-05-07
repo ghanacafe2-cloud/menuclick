@@ -88,21 +88,35 @@ async function guardarProducto() {
 
 // --- ACTUALIZAR TABLA Y REPORTE ---
 function actualizarTodo() {
-    // 1. Tabla de productos
-    const tbody = document.querySelector('#tabla-productos tbody');
-    if(tbody) {
-        tbody.innerHTML = '';
-        inventario.forEach((prod, index) => {
-            const fila = document.createElement('tr');
-            fila.innerHTML = `
-                <td>${prod.id}</td>
-                <td>${prod.nombre}</td>
-                <td>$${prod.precio.toLocaleString('es-AR')}</td>
-                <td><button class="btn-danger" onclick="eliminarProducto(${index})">Borrar</button></td>
-            `;
-            tbody.appendChild(fila);
-        });
+    // 1. LEER LAS VENTAS DEL MOSTRADOR
+    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    
+    let efec = 0, tarj = 0, qr = 0;
+    
+    // 2. SUMAR CADA MÉTODO
+    ventas.forEach(v => {
+        if (v.metodo === 'efectivo') efec += v.total;
+        if (v.metodo === 'debito') tarj += v.total;
+        if (v.metodo === 'qr') qr += v.total;
+    });
+
+    // 3. MOSTRAR EN LOS CUADRITOS (Revisá que estos IDs existan en el HTML del Admin)
+    if(document.getElementById('total-efectivo')) {
+        document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString('es-AR')}`;
     }
+    if(document.getElementById('total-debito')) {
+        document.getElementById('total-debito').innerText = `$${tarj.toLocaleString('es-AR')}`;
+    }
+    if(document.getElementById('total-qr')) {
+        document.getElementById('total-qr').innerText = `$${qr.toLocaleString('es-AR')}`;
+    }
+    if(document.getElementById('total-general')) {
+        const total = efec + tarj + qr;
+        document.getElementById('total-general').innerText = `$${total.toLocaleString('es-AR')}`;
+    }
+    
+    // ... acá sigue el código para mostrar la tabla de productos ...
+}
 
     // 2. Reporte de Ventas
     const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
