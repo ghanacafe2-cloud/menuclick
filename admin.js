@@ -88,11 +88,31 @@ function agregarFiado() {
 }
 
 function cobrarFiado(index) {
-    fiados.splice(index, 1);
-    localStorage.setItem('fiados', JSON.stringify(fiados));
-    actualizarTodo();
-}
+    const deuda = fiados[index].monto;
+    const cliente = fiados[index].cliente;
 
+    if (confirm(`¿${cliente} pagó la deuda de $${deuda}? (Se sumará al Efectivo del día)`)) {
+        
+        // 1. Cargamos las ventas del día
+        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+
+        // 2. Metemos el pago como si fuera una venta en efectivo
+        ventas.push({
+            total: deuda,
+            metodo: 'efectivo',
+            fecha: new Date().toISOString(),
+            detalle: `Pago fiado: ${cliente}` 
+        });
+
+        // 3. Guardamos ventas y borramos al cliente de la lista de fiados
+        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        fiados.splice(index, 1);
+        localStorage.setItem('fiados', JSON.stringify(fiados));
+
+        alert("¡Deuda cobrada y sumada a la caja del día!");
+        actualizarTodo();
+    }
+}
 // --- ACTUALIZAR TODO ---
 function actualizarTodo() {
     // 1. Ventas
