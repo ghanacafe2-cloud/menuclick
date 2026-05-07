@@ -141,9 +141,12 @@ function calcularVuelto() {
     if(inputCodigo) inputCodigo.focus();
 }
 
-// Asegurar que el foco siempre vuelva a la pistolita
-window.onclick = function() {
-    if(inputCodigo) inputCodigo.focus();
+// Solo devuelve el foco si el usuario no está haciendo clic en un botón o en la calculadora
+window.onclick = function(e) {
+    const elementosLibres = ['BUTTON', 'INPUT', 'SELECT', 'OPTION'];
+    if (!elementosLibres.includes(e.target.tagName)) {
+        if(inputCodigo) inputCodigo.focus();
+    }
 };
 function actualizarReporte() {
     // EL MISMO NOMBRE: 'ventas_realizadas'
