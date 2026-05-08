@@ -47,5 +47,12 @@
     "precio": 4200,
     "tipo": "fijo",
     "stock": 12
+  },
+  {
+    "id": "7622201106034",
+    "nombre": "Gelatina sin sabor",
+    "precio": 500,
+    "tipo": "fijo",
+    "stock": 20
   }
 ]
