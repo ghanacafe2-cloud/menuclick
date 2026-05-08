@@ -6,26 +6,28 @@
     <title>Panel Admin - Kiosco El Cholo</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #121212; color: #e0e0e0; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid #333; }
+        .container { max-width: 1000px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 12px; border: 1px solid #333; }
         h3 { color: #fbc02d; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px; }
         
+        /* Dashboard */
         .grid-reporte { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
         .caja { background: #252525; padding: 20px; border-radius: 10px; text-align: center; border-left: 5px solid #fbc02d; }
         .caja b { font-size: 1.5rem; display: block; margin-top: 10px; color: #fff; }
+        .total-dia { background: #fbc02d; color: #121212; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.2rem; }
         
-        .total-dia { background: #fbc02d; color: #121212; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; }
+        /* Tablas */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #252525; border-radius: 8px; overflow: hidden; }
+        th { background: #333; color: #fbc02d; padding: 12px; text-align: left; font-size: 0.85rem; }
+        td { padding: 12px; border-bottom: 1px solid #333; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #252525; border-radius: 8px; overflow: hidden; }
-        th { background: #333; color: #fbc02d; padding: 15px; text-align: left; font-size: 0.8rem; }
-        td { padding: 15px; border-bottom: 1px solid #333; }
-        
+        /* Formulario */
         input, select { background: #333; border: 1px solid #444; color: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
         .btn-save { background: #fbc02d; color: #121212; border: none; font-weight: bold; cursor: pointer; padding: 12px; border-radius: 6px; width: 100%; }
         .btn-danger { background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
         .btn-nav { background: #444; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
         
-        .status-low { color: #ff5252; font-weight: bold; }
-        .status-ok { color: #4caf50; font-weight: bold; }
+        .status-low { color: #ff5252; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
@@ -40,32 +42,22 @@
         <div class="caja"><p>📱 QR / MP</p><b id="total-qr">$0,00</b></div>
     </div>
     <div class="total-dia">TOTAL DEL DÍA: <span id="total-general">$0,00</span></div>
-    <button class="btn-danger" style="width: 100%;" onclick="borrarVentas()">🗑️ REINICIAR CAJA DIARIA</button>
+    <button class="btn-danger" style="width: 100%; margin-top: 10px;" onclick="borrarVentas()">🏁 CERRAR CAJA Y REINICIAR DÍA</button>
 
-    <h3>🔑 CONFIGURACIÓN NUBE</h3>
-    <div style="background: #252525; padding: 15px; border-radius: 8px; border: 1px solid #444;">
-        <input type="password" id="gh-token" placeholder="Token de GitHub">
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-save" style="background: #444; color: white;" onclick="guardarToken()">Validar</button>
-            <button class="btn-save" style="background: #222; color: white;" onclick="borrarToken()">Limpiar</button>
-        </div>
-        <small id="token-status"></small>
-    </div>
-
-    <h3>🆕 CARGAR PRODUCTO</h3>
+    <h3>🆕 CARGAR / EDITAR PRODUCTO</h3>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <input type="text" id="admin-codigo" placeholder="Código / Escaneo" autofocus>
         <input type="number" id="admin-stock" placeholder="Stock Inicial">
-        <input type="text" id="admin-nombre" placeholder="Nombre">
+        <input type="text" id="admin-nombre" placeholder="Nombre del Producto">
         <input type="number" id="admin-precio" placeholder="Precio $">
     </div>
     <select id="admin-tipo">
         <option value="fijo">Precio Fijo</option>
         <option value="variable">Precio Variable (Peso/Fiambre)</option>
     </select>
-    <button id="btn-guardar" class="btn-save" onclick="guardarProducto()">💾 GUARDAR PRODUCTO</button>
+    <button id="btn-guardar" class="btn-save" onclick="guardarProducto()">💾 GUARDAR EN INVENTARIO</button>
 
-    <h3>📋 INVENTARIO</h3>
+    <h3>📋 INVENTARIO Y STOCK</h3>
     <table id="tabla-productos">
         <thead>
             <tr><th>Código</th><th>Producto</th><th>Precio</th><th>Stock</th><th>Acción</th></tr>
@@ -75,42 +67,32 @@
 
     <h3>👥 LIBRETA DE FIADOS</h3>
     <div style="display: flex; gap: 10px;">
-        <input type="text" id="fiado-cliente" placeholder="Cliente">
+        <input type="text" id="fiado-cliente" placeholder="Nombre del Cliente">
         <input type="number" id="fiado-monto" placeholder="Monto $">
         <button class="btn-save" style="width: auto;" onclick="agregarFiado()">➕ ANOTAR</button>
     </div>
     <table id="tabla-fiados">
         <thead>
-            <tr><th>Cliente</th><th>Deuda</th><th>Acción</th></tr>
+            <tr><th>Cliente</th><th>Deuda Acumulada</th><th>Acción</th></tr>
         </thead>
         <tbody></tbody>
     </table>
+
+    <h3>📅 HISTORIAL DE CIERRES PASADOS</h3>
+    <table id="tabla-historial">
+        <thead>
+            <tr><th>Fecha</th><th>Efectivo</th><th>Tarj/QR</th><th>Total Día</th></tr>
+        </thead>
+        <tbody id="cuerpo-historial"></tbody>
+    </table>
+    
+    <div style="margin-top: 40px; padding: 15px; background: #252525; border-radius: 8px;">
+        <small>🔑 Nube: <span id="token-status">Cargando...</span></small>
+        <input type="password" id="gh-token" placeholder="Token GitHub" style="font-size: 10px; padding: 5px; margin-top: 5px;">
+        <button onclick="guardarToken()" style="font-size: 10px;">Validar</button>
+    </div>
 </div>
-    <h3>📝 MOVIMIENTOS DEL DÍA</h3>
-<table id="tabla-movimientos">
-    <thead>
-        <tr>
-            <th>Hora</th>
-            <th>Detalle</th>
-            <th>Método</th>
-            <th>Monto</th>
-        </tr>
-    </thead>
-    <tbody id="cuerpo-movimientos"></tbody>
-</table>
- <hr style="border-color: #444; margin: 40px 0;">
-<h3 style="color: #4caf50;">📅 HISTORIAL DE CIERRES PASADOS</h3>
-<table id="tabla-historial">
-    <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Efectivo</th>
-            <th>Tarjeta/QR</th>
-            <th>Total Día</th>
-        </tr>
-    </thead>
-    <tbody id="cuerpo-historial"></tbody>
-</table>   
+
 <script src="admin.js"></script>
 </body>
 </html>
