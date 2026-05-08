@@ -3,27 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiosco - POS Cholo</title>
+    <title>Kiosco - POS Profesional</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; margin: 0; }
-        header { background: #1a3a5a; color: white; padding: 1rem; text-align: center; }
-        #contenedor { display: flex; flex: 1; padding: 10px; gap: 10px; overflow: hidden; }
-        #ventas { flex: 2; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-y: auto; }
-        #totales { flex: 1; background: #fff; padding: 20px; border-radius: 8px; border: 2px solid #1a3a5a; display: flex; flex-direction: column; justify-content: space-between; }
-        .producto-fila { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding: 10px 0; align-items: center; }
-        /* Cuadro de escaneo resaltado */
-        input#codigo { width: 100%; padding: 15px; font-size: 1.2rem; margin-bottom: 10px; border: 3px solid #1a3a5a; border-radius: 5px; box-sizing: border-box; background: #fffde7; }
-        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.5rem; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; }
-        .total-nro { font-size: 3.5rem; color: #1a3a5a; font-weight: bold; text-align: center; margin: 10px 0; }
-        .btn-eliminar { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
-        /* Estilo para la calculadora de vuelto */
-        .caja-vuelto { background: #fff9c4; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid #fbc02d; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        
+        /* Encabezado con Logo */
+        header { 
+            background: #1a3a5a; 
+            color: white; 
+            padding: 10px 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .logo-container img {
+            height: 65px;
+            width: auto;
+            border-radius: 8px;
+            background: white;
+            padding: 3px;
+            object-fit: contain;
+        }
+        .header-text h1 { margin: 0; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 1px; }
+        .header-text p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
+
+        #contenedor { display: flex; flex: 1; padding: 15px; gap: 15px; overflow: hidden; }
+        #ventas { flex: 2; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-y: auto; display: flex; flex-direction: column; }
+        #totales { flex: 1; background: #fff; padding: 25px; border-radius: 12px; border: 2px solid #1a3a5a; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        input#codigo { width: 100%; padding: 18px; font-size: 1.3rem; margin-bottom: 15px; border: 3px solid #1a3a5a; border-radius: 8px; box-sizing: border-box; background: #fffde7; outline: none; }
+        .producto-fila { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 12px 0; align-items: center; font-size: 1.1rem; }
+        
+        .total-nro { font-size: 3.8rem; color: #1a3a5a; font-weight: bold; text-align: center; margin: 15px 0; }
+        
+        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.4rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.3s; }
+        .btn-finalizar:hover { background: #218838; }
+        
+        .btn-fiado { background: #1a3a5a; color: white; border: none; padding: 15px; font-size: 1.1rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 10px; }
+        
+        .btn-eliminar { background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
+        
+        .caja-vuelto { background: #fff9c4; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px solid #fbc02d; }
+        
+        select { padding: 12px; font-size: 1.1rem; border-radius: 8px; border: 1px solid #ccc; width: 100%; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>KIOSCO - PUNTO DE VENTA CHOLO</h1>
+    <div class="logo-container">
+        <img src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/60?text=LOGO'">
+    </div>
+    <div class="header-text">
+        <h1>KIOSCO EL CHOLO</h1>
+        <p>Sistema de Gestión de Ventas</p>
+    </div>
 </header>
 
 <div id="contenedor">
@@ -31,19 +67,19 @@
         <input type="text" id="codigo" placeholder="Gatille aquí para escanear..." autofocus>
         
         <div id="lista-productos">
-            <p style="color: gray; text-align: center; margin-top: 20px;">Esperando escaneo de producto...</p>
+            <p style="color: gray; text-align: center; margin-top: 40px; font-style: italic;">Esperando escaneo de producto...</p>
         </div>
     </div>
 
     <div id="totales">
         <div>
-            <h2 style="text-align: center; margin: 0; font-size: 1.2rem;">TOTAL A COBRAR</h2>
+            <h2 style="text-align: center; margin: 0; font-size: 1.1rem; color: #555;">TOTAL A COBRAR</h2>
             <div class="total-nro" id="total-display">$0,00</div>
         </div>
         
         <div style="display: flex; flex-direction: column; gap: 10px;">
             <label><strong>Medio de Pago:</strong></label>
-            <select id="metodo-pago" style="padding: 12px; font-size: 1.1rem; border-radius: 5px; cursor: pointer;">
+            <select id="metodo-pago">
                 <option value="efectivo">💵 EFECTIVO</option>
                 <option value="debito">💳 DÉBITO / CRÉDITO</option>
                 <option value="qr">📱 MERCADO PAGO / QR</option>
@@ -51,17 +87,16 @@
 
             <div class="caja-vuelto">
                 <label>💰 <strong>Paga con:</strong></label>
-                <input type="number" id="paga-con" oninput="calcularVuelto()" placeholder="Ej: 5000" style="width: 100%; padding: 10px; margin-top: 5px; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="number" id="paga-con" oninput="calcularVuelto()" placeholder="Ej: 5000" style="width: 100%; padding: 10px; margin-top: 5px; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 6px;">
                 <p style="margin: 10px 0 0 0; font-size: 1.3rem; text-align: center;">
                     <strong>Vuelto: <span id="vuelto-display" style="color: #2e7d32;">$0,00</span></strong>
                 </p>
             </div>
-            <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
 
-<button onclick="enviarAFiado()" style="background: #1a3a5a; color: white; border: none; padding: 15px; font-size: 1.2rem; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; margin-top: 10px;">
-    📝 ANOTAR EN FIADOS
-</button>
-            <button onclick="window.location.href='admin.html'" style="background: none; border: none; color: #1a3a5a; text-decoration: underline; cursor: pointer; margin-top: 5px;">Ir al Panel Admin</button>
+            <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
+            <button class="btn-fiado" onclick="enviarAFiado()">📝 ANOTAR EN FIADOS</button>
+            
+            <button onclick="window.location.href='admin.html'" style="background: none; border: none; color: #1a3a5a; text-decoration: underline; cursor: pointer; margin-top: 8px; font-size: 0.9rem;">⚙️ Panel Administración</button>
         </div>
     </div>
 </div>
