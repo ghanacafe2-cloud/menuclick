@@ -46,6 +46,13 @@
     "nombre": "leche",
     "precio": 4200,
     "tipo": "fijo",
-    "stock": 30
+    "stock": 12
+  },
+  {
+    "id": "FIAMBRES",
+    "nombre": "fiambres",
+    "precio": 200,
+    "tipo": "variable",
+    "stock": 11111
   }
 ]
