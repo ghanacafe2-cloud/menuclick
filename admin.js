@@ -5,21 +5,16 @@ const FILE_PATH = "productos.json";
 let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
 let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
 
-// --- TOKEN Y NUBE ---
-function guardarToken() {
-    localStorage.setItem('github_token', document.getElementById('gh-token').value.trim());
-    validarToken();
-}
-
+// --- NUBE ---
+function guardarToken() { localStorage.setItem('github_token', document.getElementById('gh-token').value.trim()); validarToken(); }
 async function validarToken() {
     const token = localStorage.getItem('github_token');
-    const status = document.getElementById('token-status');
     if (token && document.getElementById('gh-token')) document.getElementById('gh-token').value = token;
-    if (!token) return status.innerText = "Sin conectar";
+    if (!token) return;
     try {
         const res = await fetch('https://api.github.com/user', { headers: { Authorization: `token ${token}` } });
-        status.innerText = res.ok ? "✅ Conectado" : "❌ Error Token";
-    } catch (e) { status.innerText = "Error conexión"; }
+        document.getElementById('token-status').innerText = res.ok ? "✅" : "❌";
+    } catch (e) { }
 }
 
 async function subirAGithub(data) {
@@ -34,50 +29,57 @@ async function subirAGithub(data) {
         await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
             method: 'PUT',
             headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: "Update Inventario", content, sha })
+            body: JSON.stringify({ message: "Update", content, sha })
         });
-    } catch (e) { console.error("Error nube:", e); }
+    } catch (e) { }
+}
+
+// --- GASTOS ---
+function registrarGasto() {
+    const det = document.getElementById('gasto-detalle').value.trim();
+    const mon = parseFloat(document.getElementById('gasto-monto').value);
+    if (!det || isNaN(mon)) return alert("Completá detalle y monto");
+    if (confirm(`¿Restar $${mon} de la caja por ${det}?`)) {
+        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+        ventas.push({ total: -mon, metodo: 'efectivo', fecha: new Date().toISOString(), detalle: `GASTO: ${det}` });
+        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        document.getElementById('gasto-detalle').value = '';
+        document.getElementById('gasto-monto').value = '';
+        actualizarTodo();
+    }
 }
 
 // --- PRODUCTOS ---
 async function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
-    const nombre = document.getElementById('admin-nombre').value.trim();
-    const precio = parseFloat(document.getElementById('admin-precio').value);
-    const stock = parseInt(document.getElementById('admin-stock').value) || 0;
-    const tipo = document.getElementById('admin-tipo').value;
+    const nom = document.getElementById('admin-nombre').value.trim();
+    const pre = parseFloat(document.getElementById('admin-precio').value);
+    const stk = parseInt(document.getElementById('admin-stock').value) || 0;
+    const tip = document.getElementById('admin-tipo').value;
+    if (!id || !nom || isNaN(pre)) return alert("Faltan datos");
 
-    if (!id || !nombre || isNaN(precio)) return alert("Completá Código, Nombre y Precio");
-
-    const index = inventario.findIndex(p => p.id === id);
-    if (index > -1) inventario[index] = { id, nombre, precio, tipo, stock };
-    else inventario.push({ id, nombre, precio, tipo, stock });
+    const idx = inventario.findIndex(p => p.id === id);
+    if (idx > -1) inventario[idx] = { id, nombre: nom, precio: pre, tipo: tip, stock: stk };
+    else inventario.push({ id, nombre: nom, precio: pre, tipo: tip, stock: stk });
 
     localStorage.setItem('inventario', JSON.stringify(inventario));
-    document.getElementById('btn-guardar').innerText = "⏳ SUBIENDO...";
     await subirAGithub(inventario);
-    document.getElementById('btn-guardar').innerText = "💾 GUARDAR EN INVENTARIO";
     actualizarTodo();
     limpiarFormulario();
 }
 
 function eliminarProducto(index) {
-    if (confirm("¿Borrar producto?")) {
-        inventario.splice(index, 1);
-        localStorage.setItem('inventario', JSON.stringify(inventario));
-        subirAGithub(inventario);
-        actualizarTodo();
-    }
+    if (confirm("¿Borrar?")) { inventario.splice(index, 1); localStorage.setItem('inventario', JSON.stringify(inventario)); subirAGithub(inventario); actualizarTodo(); }
 }
 
 // --- FIADOS ---
 function agregarFiado() {
-    const cliente = document.getElementById('fiado-cliente').value.trim();
-    const monto = parseFloat(document.getElementById('fiado-monto').value);
-    if (!cliente || isNaN(monto)) return;
-    const index = fiados.findIndex(f => f.cliente.toUpperCase() === cliente.toUpperCase());
-    if (index > -1) fiados[index].monto += monto;
-    else fiados.push({ cliente, monto });
+    const cli = document.getElementById('fiado-cliente').value.trim();
+    const mon = parseFloat(document.getElementById('fiado-monto').value);
+    if (!cli || isNaN(mon)) return;
+    const idx = fiados.findIndex(f => f.cliente.toUpperCase() === cli.toUpperCase());
+    if (idx > -1) fiados[idx].monto += mon;
+    else fiados.push({ cliente: cli, monto: mon });
     localStorage.setItem('fiados', JSON.stringify(fiados));
     document.getElementById('fiado-cliente').value = '';
     document.getElementById('fiado-monto').value = '';
@@ -87,83 +89,70 @@ function agregarFiado() {
 function cobrarFiado(index) {
     const f = fiados[index];
     const modo = prompt(`Cobrar $${f.monto} a ${f.cliente}\n1: Efectivo\n2: Tarjeta\n3: QR`);
-    let metodo = modo === "1" ? "efectivo" : modo === "2" ? "debito" : modo === "3" ? "qr" : null;
-    
-    if (metodo) {
-        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        ventas.push({ total: f.monto, metodo: metodo, fecha: new Date().toISOString(), detalle: `COBRO FIADO: ${f.cliente}` });
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+    let met = modo === "1" ? "efectivo" : modo === "2" ? "debito" : modo === "3" ? "qr" : null;
+    if (met) {
+        let v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+        v.push({ total: f.monto, metodo: met, fecha: new Date().toISOString(), detalle: `COBRO FIADO: ${f.cliente}` });
+        localStorage.setItem('ventas_realizadas', JSON.stringify(v));
         fiados.splice(index, 1);
         localStorage.setItem('fiados', JSON.stringify(fiados));
         actualizarTodo();
     }
 }
 
-// --- CIERRE DE CAJA ---
+// --- CIERRE ---
 function borrarVentas() {
-    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    if (ventas.length === 0) return alert("No hay ventas");
-    if (confirm("¿Cerrar caja? Los totales irán al historial.")) {
+    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    if (v.length === 0) return alert("No hay ventas");
+    if (confirm("¿Cerrar la caja y guardar en historial?")) {
         let e = 0, t = 0, q = 0;
-        ventas.forEach(v => {
-            if (v.metodo === 'efectivo') e += v.total;
-            else if (v.metodo === 'debito') t += v.total;
-            else q += v.total;
-        });
-        let historial = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        historial.push({ fecha: new Date().toLocaleDateString(), efectivo: e, otros: t + q, total: e + t + q });
-        localStorage.setItem('historial_cierres', JSON.stringify(historial));
+        v.forEach(x => { if(x.metodo==='efectivo') e+=x.total; else if(x.metodo==='debito') t+=x.total; else q+=x.total; });
+        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+        h.push({ fecha: new Date().toLocaleDateString(), efectivo: e, otros: t+q, total: e+t+q });
+        localStorage.setItem('historial_cierres', JSON.stringify(h));
         localStorage.removeItem('ventas_realizadas');
         actualizarTodo();
     }
 }
 
-// --- ACTUALIZAR PANTALLA ---
+// --- ACTUALIZAR ---
 function actualizarTodo() {
-    // 1. Totales del día
-    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    let e = 0, t = 0, q = 0;
-    ventas.forEach(v => {
-        if (v.metodo === 'efectivo') e += v.total;
-        else if (v.metodo === 'debito') t += v.total;
-        else q += v.total;
-    });
-    document.getElementById('total-efectivo').innerText = `$${e.toLocaleString('es-AR')}`;
-    document.getElementById('total-debito').innerText = `$${t.toLocaleString('es-AR')}`;
-    document.getElementById('total-qr').innerText = `$${q.toLocaleString('es-AR')}`;
-    document.getElementById('total-general').innerText = `$${(e+t+q).toLocaleString('es-AR')}`;
+    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    let e=0, t=0, q=0;
+    v.forEach(x => { if(x.metodo==='efectivo') e+=x.total; else if(x.metodo==='debito') t+=x.total; else q+=x.total; });
+    document.getElementById('total-efectivo').innerText = `$${e.toLocaleString()}`;
+    document.getElementById('total-debito').innerText = `$${t.toLocaleString()}`;
+    document.getElementById('total-qr').innerText = `$${q.toLocaleString()}`;
+    document.getElementById('total-general').innerText = `$${(e+t+q).toLocaleString()}`;
 
-    // 2. Tabla Inventario
     const tbodyProd = document.querySelector('#tabla-productos tbody');
     tbodyProd.innerHTML = '';
+    const reposicion = [];
     inventario.forEach((p, i) => {
-        const clase = p.stock <= 3 ? 'status-low' : '';
-        tbodyProd.innerHTML += `<tr><td>${p.id}</td><td>${p.nombre}</td><td>$${p.precio}</td><td class="${clase}">${p.stock} un.</td><td><button class="btn-danger" onclick="eliminarProducto(${i})">🗑️</button></td></tr>`;
+        if (p.stock <= 3) reposicion.push(p.nombre);
+        tbodyProd.innerHTML += `<tr><td>${p.id}</td><td>${p.nombre}</td><td>$${p.precio}</td><td class="${p.stock<=3?'status-low':''}">${p.stock}</td><td><button class="btn-danger" onclick="eliminarProducto(${i})">🗑️</button></td></tr>`;
     });
 
-    // 3. Tabla Fiados
+    const alerta = document.getElementById('alerta-reposicion');
+    const lista = document.getElementById('lista-reposicion');
+    if (reposicion.length > 0) { alerta.style.display = 'block'; lista.innerHTML = reposicion.map(x => `<li>${x}</li>`).join(''); }
+    else alerta.style.display = 'none';
+
     const tbodyFiado = document.querySelector('#tabla-fiados tbody');
     tbodyFiado.innerHTML = '';
     fiados.forEach((f, i) => {
-        tbodyFiado.innerHTML += `<tr><td><b>${f.cliente}</b></td><td style="color:#ff5252">$${f.monto}</td><td><button onclick="cobrarFiado(${i})" style="background:#4caf50; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">PAGÓ</button></td></tr>`;
+        tbodyFiado.innerHTML += `<tr><td>${f.cliente}</td><td style="color:#ff5252">$${f.monto}</td><td><button onclick="cobrarFiado(${i})" style="background:#4caf50; border:none; color:white; border-radius:4px; cursor:pointer;">PAGÓ</button></td></tr>`;
     });
 
-    // 4. Historial
     const tbodyHist = document.getElementById('cuerpo-historial');
     tbodyHist.innerHTML = '';
-    const hist = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-    hist.reverse().slice(0, 10).forEach(c => {
-        tbodyHist.innerHTML += `<tr><td>${c.fecha}</td><td>$${c.efectivo}</td><td>$${c.otros}</td><td style="color:#fbc02d">$${c.total}</td></tr>`;
+    const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+    h.reverse().slice(0, 5).forEach(c => {
+        tbodyHist.innerHTML += `<tr><td>${c.fecha}</td><td>$${c.efectivo}</td><td>$${c.otros}</td><td>$${c.total}</td></tr>`;
     });
 }
 
-function limpiarFormulario() {
-    document.getElementById('admin-codigo').value = '';
-    document.getElementById('admin-nombre').value = '';
-    document.getElementById('admin-precio').value = '';
-    document.getElementById('admin-stock').value = '';
-    document.getElementById('admin-codigo').focus();
-}
+function limpiarFormulario() { document.getElementById('admin-codigo').value = ''; document.getElementById('admin-nombre').value = ''; document.getElementById('admin-precio').value = ''; document.getElementById('admin-stock').value = ''; document.getElementById('admin-codigo').focus(); }
 
 validarToken();
 actualizarTodo();
