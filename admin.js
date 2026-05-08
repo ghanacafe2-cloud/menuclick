@@ -158,29 +158,39 @@ function limpiarFormulario() {
     document.getElementById('admin-codigo').focus();
 }
 
-function borrarVentas() { if(confirm("¿Borrar caja?")) { localStorage.removeItem('ventas_realizadas'); actualizarTodo(); } }
-
-validarToken();
-actualizarTodo();
-// ... dentro de actualizarTodo() ...
-
-const tablaMov = document.getElementById('cuerpo-movimientos');
-if (tablaMov) {
-    tablaMov.innerHTML = '';
-    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+function borrarVentas() {
+    const ventasActuales = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     
-    // Mostramos las últimas 10 ventas/cobros
-    ventas.reverse().slice(0, 10).forEach(v => {
-        const fila = document.createElement('tr');
-        // Si tiene detalle es un cobro de fiado, si no, es una venta común
-        const descripcion = v.detalle ? v.detalle : "Venta Mostrador";
+    if (ventasActuales.length === 0) return alert("No hay ventas para cerrar.");
+
+    if (confirm("¿Desea cerrar la caja del día? Los totales se guardarán en el historial y la pantalla se limpiará.")) {
         
-        fila.innerHTML = `
-            <td>${v.fecha.split(',')[1] || v.fecha}</td>
-            <td>${descripcion}</td>
-            <td>${v.metodo.toUpperCase()}</td>
-            <td style="font-weight:bold">$${v.total.toLocaleString('es-AR')}</td>
-        `;
-        tablaMov.appendChild(fila);
-    });
+        // 1. Calculamos los totales del día que estamos cerrando
+        let e = 0, t = 0, q = 0;
+        ventasActuales.forEach(v => {
+            if (v.metodo === 'efectivo') e += v.total;
+            else if (v.metodo === 'debito') t += v.total;
+            else q += v.total;
+        });
+
+        // 2. Creamos el registro del día
+        const cierreDelDia = {
+            fecha: new Date().toLocaleDateString(),
+            efectivo: e,
+            tarjeta: t,
+            qr: q,
+            total: e + t + q
+        };
+
+        // 3. Lo metemos en el Historial Permanente
+        let historial = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+        historial.push(cierreDelDia);
+        localStorage.setItem('historial_cierres', JSON.stringify(historial));
+
+        // 4. AHORA SÍ, limpiamos las ventas del monitor para empezar el día nuevo
+        localStorage.removeItem('ventas_realizadas');
+        
+        alert("✅ Caja cerrada y guardada en el historial.");
+        actualizarTodo();
+    }
 }
