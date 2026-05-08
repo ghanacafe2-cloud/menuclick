@@ -91,27 +91,33 @@ function cobrarFiado(index) {
     const deuda = fiados[index].monto;
     const cliente = fiados[index].cliente;
 
-    if (confirm(`¿${cliente} pagó la deuda de $${deuda}? (Se sumará al Efectivo del día)`)) {
-        
-        // 1. Cargamos las ventas del día
-        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    // 1. Preguntamos cómo paga
+    const metodo = prompt(`Cobrar $${deuda} a ${cliente}.\n¿Cómo paga?\n1: Efectivo\n2: Débito/Crédito\n3: QR/Mercado Pago`);
 
-        // 2. Metemos el pago como si fuera una venta en efectivo
-        ventas.push({
-            total: deuda,
-            metodo: 'efectivo',
-            fecha: new Date().toISOString(),
-            detalle: `Pago fiado: ${cliente}` 
-        });
+    let metodoTexto = "";
+    if (metodo === "1") metodoTexto = "efectivo";
+    else if (metodo === "2") metodoTexto = "debito";
+    else if (metodo === "3") metodoTexto = "qr";
+    else return; // Si pone otra cosa o cancela, no hace nada
 
-        // 3. Guardamos ventas y borramos al cliente de la lista de fiados
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
-        fiados.splice(index, 1);
-        localStorage.setItem('fiados', JSON.stringify(fiados));
+    // 2. Cargamos las ventas del día
+    let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
 
-        alert("¡Deuda cobrada y sumada a la caja del día!");
-        actualizarTodo();
-    }
+    // 3. Registramos el ingreso de plata diferenciado
+    ventas.push({
+        total: deuda,
+        metodo: metodoTexto,
+        fecha: new Date().toLocaleString(),
+        detalle: `COBRO FIADO: ${cliente}` // Esto sirve para saber que no fue una venta común
+    });
+
+    // 4. Guardamos y limpiamos la deuda
+    localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+    fiados.splice(index, 1);
+    localStorage.setItem('fiados', JSON.stringify(fiados));
+
+    alert(`✅ Cobro registrado en ${metodoTexto.toUpperCase()}`);
+    actualizarTodo();
 }
 // --- ACTUALIZAR TODO ---
 function actualizarTodo() {
