@@ -157,6 +157,25 @@ function limpiarFormulario() {
     document.getElementById('admin-stock').value = '';
     document.getElementById('admin-codigo').focus();
 }
+// ... dentro de actualizarTodo() ...
+
+const tablaHistorial = document.getElementById('cuerpo-historial');
+if (tablaHistorial) {
+    tablaHistorial.innerHTML = '';
+    const historial = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+    
+    // Mostramos los cierres, el más nuevo arriba
+    historial.reverse().forEach(c => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+            <td>${c.fecha}</td>
+            <td>$${c.efectivo.toLocaleString('es-AR')}</td>
+            <td>$${(c.tarjeta + c.qr).toLocaleString('es-AR')}</td>
+            <td style="font-weight:bold; color:#fbc02d;">$${c.total.toLocaleString('es-AR')}</td>
+        `;
+        tablaHistorial.appendChild(fila);
+    });
+}
 
 function borrarVentas() {
     const ventasActuales = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
