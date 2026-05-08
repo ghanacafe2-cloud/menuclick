@@ -162,3 +162,25 @@ function borrarVentas() { if(confirm("¿Borrar caja?")) { localStorage.removeIte
 
 validarToken();
 actualizarTodo();
+// ... dentro de actualizarTodo() ...
+
+const tablaMov = document.getElementById('cuerpo-movimientos');
+if (tablaMov) {
+    tablaMov.innerHTML = '';
+    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    
+    // Mostramos las últimas 10 ventas/cobros
+    ventas.reverse().slice(0, 10).forEach(v => {
+        const fila = document.createElement('tr');
+        // Si tiene detalle es un cobro de fiado, si no, es una venta común
+        const descripcion = v.detalle ? v.detalle : "Venta Mostrador";
+        
+        fila.innerHTML = `
+            <td>${v.fecha.split(',')[1] || v.fecha}</td>
+            <td>${descripcion}</td>
+            <td>${v.metodo.toUpperCase()}</td>
+            <td style="font-weight:bold">$${v.total.toLocaleString('es-AR')}</td>
+        `;
+        tablaMov.appendChild(fila);
+    });
+}
