@@ -53,6 +53,13 @@
     "nombre": "gelatina sin sabor",
     "precio": 600,
     "tipo": "fijo",
+    "stock": 0
+  },
+  {
+    "id": "7793450000128",
+    "nombre": "gelatina sin sabor",
+    "precio": 600,
+    "tipo": "fijo",
     "stock": 5
   }
 ]
