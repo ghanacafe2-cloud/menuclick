@@ -50,9 +50,9 @@
   },
   {
     "id": "7622201106034",
-    "nombre": "Gelatina sin sabor",
-    "precio": 500,
+    "nombre": "gelatina sin sabor",
+    "precio": 5000,
     "tipo": "fijo",
-    "stock": 0
+    "stock": 5
   }
 ]
