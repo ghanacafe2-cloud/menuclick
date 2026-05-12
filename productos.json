@@ -54,12 +54,5 @@
     "precio": 500,
     "tipo": "fijo",
     "stock": 0
-  },
-  {
-    "id": "GELATINA SIN SABOR",
-    "nombre": "7622201106034",
-    "precio": 500,
-    "tipo": "fijo",
-    "stock": 5
   }
 ]
