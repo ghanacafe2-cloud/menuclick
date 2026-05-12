@@ -34,20 +34,78 @@ async function subirAGithub(data) {
     } catch (e) { }
 }
 
-// --- GASTOS ---
+// --- ACTUALIZAR FUNCIÓN DE GASTOS ---
 function registrarGasto() {
     const det = document.getElementById('gasto-detalle').value.trim();
     const mon = parseFloat(document.getElementById('gasto-monto').value);
-    if (!det || isNaN(mon)) return alert("Completá detalle y monto");
-    if (confirm(`¿Restar $${mon} de la caja por ${det}?`)) {
+    
+    if (!det || isNaN(mon)) return alert("Completá detalle y monto del pago");
+    
+    if (confirm(`¿Confirmas el pago de $${mon} por: ${det}?`)) {
         let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        ventas.push({ total: -mon, metodo: 'efectivo', fecha: new Date().toISOString(), detalle: `GASTO: ${det}` });
+        
+        // El objeto ahora lleva la fecha y hora exacta
+        const nuevoGasto = { 
+            total: -mon, 
+            metodo: 'efectivo', 
+            fecha: new Date().toLocaleString(), // Fecha y hora legible
+            detalle: `GASTO: ${det}` 
+        };
+        
+        ventas.push(nuevoGasto);
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        
+        // Limpiar campos
         document.getElementById('gasto-detalle').value = '';
         document.getElementById('gasto-monto').value = '';
+        
         actualizarTodo();
     }
 }
+
+// --- FUNCIÓN PARA LIMPIAR SOLO LA LISTA DE GASTOS (Opcional) ---
+function borrarGastoIndividual(indexVentaOriginal) {
+    if (confirm("¿Borrar este registro de pago? (Ojo: esto devolverá la plata a la caja virtual)")) {
+        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+        ventas.splice(indexVentaOriginal, 1);
+        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        actualizarTodo();
+    }
+}
+
+function limpiarHistorialGastos() {
+    if (confirm("¿Querés borrar todos los registros de pagos de la lista? (La plata ya fue descontada de la caja)")) {
+        // Aquí podrías decidir si solo querés "ocultarlos" o borrarlos. 
+        // Lo más seguro para el usuario es que los gastos se borren al Cerrar Caja.
+        alert("Para mantener la caja cuadrada, los gastos se limpian automáticamente al 'Cerrar Caja'.");
+    }
+}
+
+// --- ACTUALIZAR LA FUNCIÓN actualizarTodo() ---
+// Agregá esto dentro de tu función actualizarTodo() para que dibuje la tabla de gastos
+function dibujarTablaGastos() {
+    const tbodyGastos = document.getElementById('cuerpo-gastos');
+    if (!tbodyGastos) return;
+    
+    tbodyGastos.innerHTML = '';
+    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    
+    // Filtramos solo lo que sea gasto (monto negativo)
+    v.forEach((x, index) => {
+        if (x.total < 0) {
+            tbodyGastos.innerHTML += `
+                <tr>
+                    <td>${x.fecha}</td>
+                    <td>${x.detalle}</td>
+                    <td style="color: #ff5252;">-$${Math.abs(x.total).toLocaleString()}</td>
+                    <td><button class="btn-danger" onclick="borrarGastoIndividual(${index})">🗑️</button></td>
+                </tr>
+            `;
+        }
+    });
+}
+
+// Acordate de llamar a dibujarTablaGastos() al final de actualizarTodo()
 
 // --- PRODUCTOS ---
 async function guardarProducto() {
