@@ -111,13 +111,20 @@
         <tbody></tbody>
     </table>
 
-    <h3>📅 HISTORIAL DE CIERRES PASADOS</h3>
-    <table id="tabla-historial">
-        <thead>
-            <tr><th>Fecha</th><th>Efectivo</th><th>Tarj/QR</th><th>Total</th></tr>
-        </thead>
-        <tbody id="cuerpo-historial"></tbody>
-    </table>
+   <!-- Buscá esta parte y dejala así -->
+<h3>📅 HISTORIAL DE CIERRES PASADOS</h3>
+<table id="tabla-historial">
+    <thead>
+        <tr>
+            <th>Fecha</th>
+            <th>Efectivo</th>
+            <th>Tarj/QR</th>
+            <th>Total</th>
+            <th>Acción</th> <!-- Agregamos esta columna -->
+        </tr>
+    </thead>
+    <tbody id="cuerpo-historial"></tbody>
+</table>
 
     <div style="margin-top: 40px; font-size: 12px; opacity: 0.5;">
         Token Nube: <input type="password" id="gh-token" onchange="guardarToken()" style="width: 100px; padding: 2px;">
