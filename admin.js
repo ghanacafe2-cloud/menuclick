@@ -225,17 +225,34 @@ function actualizarTodo() {
         tbodyFiado.innerHTML += `<tr><td>${f.cliente}</td><td style="color:#ff5252">$${f.monto}</td><td><button onclick="cobrarFiado(${i})" style="background:#4caf50; border:none; color:white; border-radius:4px; cursor:pointer; padding: 5px;">PAGÓ</button></td></tr>`;
     });
 
-    const tbodyHist = document.getElementById('cuerpo-historial');
+const tbodyHist = document.getElementById('cuerpo-historial');
     tbodyHist.innerHTML = '';
     const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-    [...h].reverse().slice(0, 5).forEach(c => {
-        tbodyHist.innerHTML += `<tr><td>${c.fecha}</td><td>$${c.efectivo}</td><td>$${c.otros}</td><td>$${c.total}</td></tr>`;
+    
+    // Usamos el índice original para poder borrar correctamente
+    [...h].reverse().forEach((c, index) => {
+        // Calculamos el índice real (porque el reverse lo cambia)
+        const realIndex = h.length - 1 - index;
+        
+        tbodyHist.innerHTML += `
+            <tr>
+                <td>${c.fecha}</td>
+                <td>$${c.efectivo.toLocaleString()}</td>
+                <td>$${c.otros.toLocaleString()}</td>
+                <td>$${c.total.toLocaleString()}</td>
+                <td>
+                    <button class="btn-danger" onclick="borrarCierreHistorial(${realIndex})">🗑️</button>
+                </td>
+            </tr>`;
     });
-
-    // LLAMADA CLAVE PARA QUE SE VEAN LOS GASTOS
-    dibujarTablaGastos(); 
+function borrarCierreHistorial(index) {
+    if (confirm("¿Estás seguro de borrar este cierre del historial? No se puede deshacer.")) {
+        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+        h.splice(index, 1); // Borra el cierre elegido
+        localStorage.setItem('historial_cierres', JSON.stringify(h));
+        actualizarTodo(); // Refresca la tabla
+    }
 }
-
 function limpiarFormulario() { 
     document.getElementById('admin-codigo').value = ''; 
     document.getElementById('admin-nombre').value = ''; 
