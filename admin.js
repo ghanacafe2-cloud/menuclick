@@ -5,132 +5,125 @@ const FILE_PATH = "productos.json";
 let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
 let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
 
-// --- NUBE ---
-function guardarToken() { localStorage.setItem('github_token', document.getElementById('gh-token').value.trim()); validarToken(); }
-async function validarToken() {
-    const token = localStorage.getItem('github_token');
-    if (token && document.getElementById('gh-token')) document.getElementById('gh-token').value = token;
-    if (!token) return;
-    try {
-        const res = await fetch('https://api.github.com/user', { headers: { Authorization: `token ${token}` } });
-        document.getElementById('token-status').innerText = res.ok ? "✅" : "❌";
-    } catch (e) { }
-}
-
-async function subirAGithub(data) {
-    const token = localStorage.getItem('github_token');
-    if (!token) return;
-    try {
-        const resInfo = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
-            headers: { Authorization: `token ${token}` }
-        });
-        let sha = resInfo.ok ? (await resInfo.json()).sha : undefined;
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-        await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
-            method: 'PUT',
-            headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: "Update", content, sha })
-        });
-    } catch (e) { }
-}
-
-// --- ACTUALIZAR FUNCIÓN DE GASTOS ---
+// --- FUNCIONES DE GASTOS ---
 function registrarGasto() {
     const det = document.getElementById('gasto-detalle').value.trim();
     const mon = parseFloat(document.getElementById('gasto-monto').value);
     
-    if (!det || isNaN(mon)) return alert("Completá detalle y monto del pago");
+    if (!det || isNaN(mon)) return alert("Poné detalle y monto");
     
-    if (confirm(`¿Confirmas el pago de $${mon} por: ${det}?`)) {
+    if (confirm(`¿Pagar $${mon} por ${det}?`)) {
         let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        
-        // El objeto ahora lleva la fecha y hora exacta
-        const nuevoGasto = { 
+        ventas.push({ 
             total: -mon, 
             metodo: 'efectivo', 
-            fecha: new Date().toLocaleString(), // Fecha y hora legible
+            fecha: new Date().toLocaleString(), 
             detalle: `GASTO: ${det}` 
-        };
-        
-        ventas.push(nuevoGasto);
+        });
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
-        
-        // Limpiar campos
         document.getElementById('gasto-detalle').value = '';
         document.getElementById('gasto-monto').value = '';
-        
         actualizarTodo();
     }
 }
 
-// --- FUNCIÓN PARA LIMPIAR SOLO LA LISTA DE GASTOS (Opcional) ---
-function borrarGastoIndividual(indexVentaOriginal) {
-    if (confirm("¿Borrar este registro de pago? (Ojo: esto devolverá la plata a la caja virtual)")) {
+function borrarGastoIndividual(idx) {
+    if (confirm("¿Borrar este registro?")) {
         let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        ventas.splice(indexVentaOriginal, 1);
+        ventas.splice(idx, 1);
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
         actualizarTodo();
     }
 }
 
-function limpiarHistorialGastos() {
-    if (confirm("¿Querés borrar todos los registros de pagos de la lista? (La plata ya fue descontada de la caja)")) {
-        // Aquí podrías decidir si solo querés "ocultarlos" o borrarlos. 
-        // Lo más seguro para el usuario es que los gastos se borren al Cerrar Caja.
-        alert("Para mantener la caja cuadrada, los gastos se limpian automáticamente al 'Cerrar Caja'.");
-    }
-}
+// --- ACTUALIZACIÓN DE PANTALLA ---
+function actualizarTodo() {
+    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    let efec = 0, otros = 0;
 
-// --- ACTUALIZAR LA FUNCIÓN actualizarTodo() ---
-// Agregá esto dentro de tu función actualizarTodo() para que dibuje la tabla de gastos
-function dibujarTablaGastos() {
-    const tbodyGastos = document.getElementById('cuerpo-gastos');
-    if (!tbodyGastos) return;
-    
-    tbodyGastos.innerHTML = '';
-    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    
-    // Filtramos solo lo que sea gasto (monto negativo)
-    v.forEach((x, index) => {
-        if (x.total < 0) {
-            tbodyGastos.innerHTML += `
+    // Totales y Tabla de Gastos
+    const cuerpoGastos = document.getElementById('cuerpo-gastos');
+    cuerpoGastos.innerHTML = '';
+
+    ventas.forEach((v, index) => {
+        if (v.metodo === 'efectivo') efec += v.total;
+        else otros += v.total;
+
+        if (v.total < 0) {
+            cuerpoGastos.innerHTML += `
                 <tr>
-                    <td>${x.fecha}</td>
-                    <td>${x.detalle}</td>
-                    <td style="color: #ff5252;">-$${Math.abs(x.total).toLocaleString()}</td>
+                    <td>${v.fecha.split(', ')[1] || v.fecha}</td>
+                    <td>${v.detalle}</td>
+                    <td style="color:#ff5252">-$${Math.abs(v.total)}</td>
                     <td><button class="btn-danger" onclick="borrarGastoIndividual(${index})">🗑️</button></td>
-                </tr>
-            `;
+                </tr>`;
         }
+    });
+
+    document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString()}`;
+    document.getElementById('total-otros').innerText = `$${otros.toLocaleString()}`;
+    document.getElementById('total-general').innerText = `$${(efec + otros).toLocaleString()}`;
+
+    // Inventario y Alerta Reposición
+    const tbodyProd = document.querySelector('#tabla-productos tbody');
+    const listaRep = document.getElementById('lista-reposicion');
+    const alertaRep = document.getElementById('alerta-reposicion');
+    tbodyProd.innerHTML = '';
+    listaRep.innerHTML = '';
+    let faltantes = 0;
+
+    inventario.forEach((p, i) => {
+        if (p.stock <= 3) {
+            faltantes++;
+            listaRep.innerHTML += `<li>${p.nombre} (Quedan: ${p.stock})</li>`;
+        }
+        tbodyProd.innerHTML += `<tr>
+            <td>${p.id}</td>
+            <td>${p.nombre}</td>
+            <td>$${p.precio}</td>
+            <td class="${p.stock <= 3 ? 'status-low' : ''}">${p.stock}</td>
+            <td><button class="btn-danger" onclick="eliminarProducto(${i})">🗑️</button></td>
+        </tr>`;
+    });
+    alertaRep.style.display = faltantes > 0 ? 'block' : 'none';
+
+    // Fiados
+    const tbodyFiados = document.getElementById('tabla-fiados-body');
+    tbodyFiados.innerHTML = '';
+    fiados.forEach((f, i) => {
+        tbodyFiados.innerHTML += `<tr>
+            <td>${f.cliente}</td>
+            <td style="color:#ff5252">$${f.monto}</td>
+            <td><button onclick="cobrarFiado(${i})" style="background:#4caf50; border:none; color:white; padding:5px; border-radius:4px; cursor:pointer;">PAGÓ</button></td>
+        </tr>`;
+    });
+
+    // Historial Cierres
+    const histBody = document.getElementById('cuerpo-historial');
+    histBody.innerHTML = '';
+    const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+    h.reverse().slice(0, 5).forEach(c => {
+        histBody.innerHTML += `<tr><td>${c.fecha}</td><td>$${c.efectivo}</td><td>$${c.otros}</td><td>$${c.total}</td></tr>`;
     });
 }
 
-// Acordate de llamar a dibujarTablaGastos() al final de actualizarTodo()
-
-// --- PRODUCTOS ---
-async function guardarProducto() {
+// --- OTRAS FUNCIONES (Resumidas para que funcionen directo) ---
+function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
     const nom = document.getElementById('admin-nombre').value.trim();
     const pre = parseFloat(document.getElementById('admin-precio').value);
     const stk = parseInt(document.getElementById('admin-stock').value) || 0;
     const tip = document.getElementById('admin-tipo').value;
     if (!id || !nom || isNaN(pre)) return alert("Faltan datos");
-
     const idx = inventario.findIndex(p => p.id === id);
     if (idx > -1) inventario[idx] = { id, nombre: nom, precio: pre, tipo: tip, stock: stk };
     else inventario.push({ id, nombre: nom, precio: pre, tipo: tip, stock: stk });
-
     localStorage.setItem('inventario', JSON.stringify(inventario));
-    await subirAGithub(inventario);
     actualizarTodo();
-    limpiarFormulario();
 }
 
-function eliminarProducto(index) {
-    if (confirm("¿Borrar?")) { inventario.splice(index, 1); localStorage.setItem('inventario', JSON.stringify(inventario)); subirAGithub(inventario); actualizarTodo(); }
-}
+function eliminarProducto(i) { if (confirm("¿Borrar?")) { inventario.splice(i, 1); localStorage.setItem('inventario', JSON.stringify(inventario)); actualizarTodo(); } }
 
-// --- FIADOS ---
 function agregarFiado() {
     const cli = document.getElementById('fiado-cliente').value.trim();
     const mon = parseFloat(document.getElementById('fiado-monto').value);
@@ -139,90 +132,32 @@ function agregarFiado() {
     if (idx > -1) fiados[idx].monto += mon;
     else fiados.push({ cliente: cli, monto: mon });
     localStorage.setItem('fiados', JSON.stringify(fiados));
-    document.getElementById('fiado-cliente').value = '';
-    document.getElementById('fiado-monto').value = '';
     actualizarTodo();
 }
 
-function cobrarFiado(index) {
-    const f = fiados[index];
-    const modo = prompt(`Cobrar $${f.monto} a ${f.cliente}\n1: Efectivo\n2: Tarjeta\n3: QR`);
-    let met = modo === "1" ? "efectivo" : modo === "2" ? "debito" : modo === "3" ? "qr" : null;
-    if (met) {
-        let v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        v.push({ total: f.monto, metodo: met, fecha: new Date().toISOString(), detalle: `COBRO FIADO: ${f.cliente}` });
-        localStorage.setItem('ventas_realizadas', JSON.stringify(v));
-        fiados.splice(index, 1);
-        localStorage.setItem('fiados', JSON.stringify(fiados));
-        actualizarTodo();
-    }
+function cobrarFiado(i) {
+    const f = fiados[i];
+    const met = prompt(`¿Cómo paga ${f.cliente}? \n1: Efectivo\n2: Otros`) === "1" ? "efectivo" : "otros";
+    let v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    v.push({ total: f.monto, metodo: met, fecha: new Date().toLocaleString(), detalle: `COBRO FIADO: ${f.cliente}` });
+    localStorage.setItem('ventas_realizadas', JSON.stringify(v));
+    fiados.splice(i, 1);
+    localStorage.setItem('fiados', JSON.stringify(fiados));
+    actualizarTodo();
 }
 
-// --- CIERRE ---
 function borrarVentas() {
     const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    if (v.length === 0) return alert("No hay ventas");
-    if (confirm("¿Cerrar la caja y guardar en historial?")) {
-        let e = 0, t = 0, q = 0;
-        v.forEach(x => { if(x.metodo==='efectivo') e+=x.total; else if(x.metodo==='debito') t+=x.total; else q+=x.total; });
+    if (v.length === 0) return alert("No hay movimientos");
+    if (confirm("¿Cerrar caja?")) {
+        let e = 0, o = 0;
+        v.forEach(x => { if(x.metodo==='efectivo') e+=x.total; else o+=x.total; });
         let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        h.push({ fecha: new Date().toLocaleDateString(), efectivo: e, otros: t+q, total: e+t+q });
+        h.push({ fecha: new Date().toLocaleDateString(), efectivo: e, otros: o, total: e+o });
         localStorage.setItem('historial_cierres', JSON.stringify(h));
         localStorage.removeItem('ventas_realizadas');
         actualizarTodo();
     }
 }
 
-// --- ACTUALIZAR ---
-function actualizarTodo() {
-    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    let e=0, t=0, q=0;
-    v.forEach(x => { if(x.metodo==='efectivo') e+=x.total; else if(x.metodo==='debito') t+=x.total; else q+=x.total; });
-    document.getElementById('total-efectivo').innerText = `$${e.toLocaleString()}`;
-    document.getElementById('total-debito').innerText = `$${t.toLocaleString()}`;
-    document.getElementById('total-qr').innerText = `$${q.toLocaleString()}`;
-    document.getElementById('total-general').innerText = `$${(e+t+q).toLocaleString()}`;
-
-    const tbodyProd = document.querySelector('#tabla-productos tbody');
-    tbodyProd.innerHTML = '';
-    const reposicion = [];
-    inventario.forEach((p, i) => {
-        if (p.stock <= 3) reposicion.push(p.nombre);
-        tbodyProd.innerHTML += `<tr><td>${p.id}</td><td>${p.nombre}</td><td>$${p.precio}</td><td class="${p.stock<=3?'status-low':''}">${p.stock}</td><td><button class="btn-danger" onclick="eliminarProducto(${i})">🗑️</button></td></tr>`;
-    });
-
-    const alerta = document.getElementById('alerta-reposicion');
-    const lista = document.getElementById('lista-reposicion');
-    if (reposicion.length > 0) { alerta.style.display = 'block'; lista.innerHTML = reposicion.map(x => `<li>${x}</li>`).join(''); }
-    else alerta.style.display = 'none';
-
-    const tbodyFiado = document.querySelector('#tabla-fiados tbody');
-    tbodyFiado.innerHTML = '';
-    fiados.forEach((f, i) => {
-        tbodyFiado.innerHTML += `<tr><td>${f.cliente}</td><td style="color:#ff5252">$${f.monto}</td><td><button onclick="cobrarFiado(${i})" style="background:#4caf50; border:none; color:white; border-radius:4px; cursor:pointer;">PAGÓ</button></td></tr>`;
-    });
-
-    const tbodyHist = document.getElementById('cuerpo-historial');
-    tbodyHist.innerHTML = '';
-    const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-    h.reverse().slice(0, 5).forEach(c => {
-        tbodyHist.innerHTML += `<tr><td>${c.fecha}</td><td>$${c.efectivo}</td><td>$${c.otros}</td><td>$${c.total}</td></tr>`;
-    });
-}
-
-function limpiarFormulario() { document.getElementById('admin-codigo').value = ''; document.getElementById('admin-nombre').value = ''; document.getElementById('admin-precio').value = ''; document.getElementById('admin-stock').value = ''; document.getElementById('admin-codigo').focus(); }
-
-validarToken();
 actualizarTodo();
-function anularUltimaVentaAdmin() {
-    let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    if (ventas.length === 0) return alert("No hay movimientos para anular.");
-
-    const ultima = ventas[ventas.length - 1];
-    if (confirm(`¿Anular el último movimiento: "${ultima.detalle || 'Venta'}" de $${ultima.total}?`)) {
-        ventas.pop();
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
-        actualizarTodo();
-        alert("Movimiento anulado.");
-    }
-}
