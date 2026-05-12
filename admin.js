@@ -153,6 +153,17 @@ function actualizarTodo() {
 }
 
 function limpiarFormulario() { document.getElementById('admin-codigo').value = ''; document.getElementById('admin-nombre').value = ''; document.getElementById('admin-precio').value = ''; document.getElementById('admin-stock').value = ''; document.getElementById('admin-codigo').focus(); }
+function anularUltimaVentaAdmin() {
+    let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    if (ventas.length === 0) return alert("No hay movimientos para anular.");
 
+    const ultima = ventas[ventas.length - 1];
+    if (confirm(`¿Anular el último movimiento: "${ultima.detalle || 'Venta'}" de $${ultima.total}?`)) {
+        ventas.pop();
+        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        actualizarTodo();
+        alert("Movimiento anulado.");
+    }
+}
 validarToken();
 actualizarTodo();
