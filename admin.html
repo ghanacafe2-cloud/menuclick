@@ -9,25 +9,21 @@
         .container { max-width: 1000px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 12px; border: 1px solid #333; }
         h3 { color: #fbc02d; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px; }
         
-        /* Dashboard de Dinero */
+        /* Dashboard */
         .grid-reporte { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
         .caja { background: #252525; padding: 20px; border-radius: 10px; text-align: center; border-left: 5px solid #fbc02d; }
         .caja b { font-size: 1.5rem; display: block; margin-top: 10px; color: #fff; }
-        .total-dia { background: #fbc02d; color: #121212; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.5rem; }
-        
-        /* Alertas de Stock */
-        #alerta-reposicion { background: #4a0e0e; border: 2px solid #e74c3c; padding: 15px; border-radius: 8px; margin: 20px 0; display: none; }
+        .total-dia { background: #fbc02d; color: #121212; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.2rem; }
         
         /* Tablas */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #252525; border-radius: 8px; overflow: hidden; }
-        th { background: #333; color: #fbc02d; padding: 12px; text-align: left; }
+        th { background: #333; color: #fbc02d; padding: 12px; text-align: left; font-size: 0.85rem; }
         td { padding: 12px; border-bottom: 1px solid #333; }
         
-        /* Inputs y Botones */
+        /* Formulario */
         input, select { background: #333; border: 1px solid #444; color: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
         .btn-save { background: #fbc02d; color: #121212; border: none; font-weight: bold; cursor: pointer; padding: 12px; border-radius: 6px; width: 100%; }
-        .btn-danger { background: #e74c3c; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
-        .btn-gasto { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
         .btn-nav { background: #444; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
         
         .status-low { color: #ff5252; font-weight: bold; animation: blink 1s infinite; }
@@ -39,44 +35,29 @@
 <div class="container">
     <button class="btn-nav" onclick="window.location.href='index.html'">⬅ VOLVER AL MOSTRADOR</button>
 
-    <h3>📊 CAJA DEL DÍA (INGRESOS - GASTOS)</h3>
+    <h3>📊 CIERRE DE CAJA DIARIO</h3>
     <div class="grid-reporte">
-        <div class="caja"><p>💵 Efectivo Neto</p><b id="total-efectivo">$0,00</b></div>
+        <div class="caja"><p>💵 Efectivo</p><b id="total-efectivo">$0,00</b></div>
         <div class="caja"><p>💳 Tarjeta</p><b id="total-debito">$0,00</b></div>
         <div class="caja"><p>📱 QR / MP</p><b id="total-qr">$0,00</b></div>
     </div>
-    <div class="total-dia">EN CAJA AHORA: <span id="total-general">$0,00</span></div>
-    
-    <div style="display: flex; gap: 10px; margin-top: 10px;">
-        <button class="btn-danger" style="flex: 1;" onclick="borrarVentas()">🏁 CERRAR CAJA Y GUARDAR DÍA</button>
-    </div>
-
-    <h3>💸 REGISTRAR SALIDA DE PLATA (GASTO)</h3>
-    <div style="display: flex; gap: 10px; background: #252525; padding: 15px; border-radius: 8px;">
-        <input type="text" id="gasto-detalle" placeholder="Ej: Pago a Panadero" style="margin-bottom:0">
-        <input type="number" id="gasto-monto" placeholder="Monto $" style="margin-bottom:0">
-        <button class="btn-gasto" onclick="registrarGasto()">➖ RESTAR</button>
-    </div>
-
-    <div id="alerta-reposicion">
-        <h4 style="margin: 0; color: #ff5252;">⚠️ FALTA MERCADERÍA:</h4>
-        <ul id="lista-reposicion" style="margin: 10px 0 0 0; color: white;"></ul>
-    </div>
+    <div class="total-dia">TOTAL DEL DÍA: <span id="total-general">$0,00</span></div>
+    <button class="btn-danger" style="width: 100%; margin-top: 10px;" onclick="borrarVentas()">🏁 CERRAR CAJA Y REINICIAR DÍA</button>
 
     <h3>🆕 CARGAR / EDITAR PRODUCTO</h3>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <input type="text" id="admin-codigo" placeholder="Código / Escaneo" autofocus>
-        <input type="number" id="admin-stock" placeholder="Stock">
-        <input type="text" id="admin-nombre" placeholder="Nombre">
+        <input type="number" id="admin-stock" placeholder="Stock Inicial">
+        <input type="text" id="admin-nombre" placeholder="Nombre del Producto">
         <input type="number" id="admin-precio" placeholder="Precio $">
     </div>
     <select id="admin-tipo">
         <option value="fijo">Precio Fijo</option>
-        <option value="variable">Precio Variable (Peso)</option>
+        <option value="variable">Precio Variable (Peso/Fiambre)</option>
     </select>
     <button id="btn-guardar" class="btn-save" onclick="guardarProducto()">💾 GUARDAR EN INVENTARIO</button>
 
-    <h3>📋 INVENTARIO</h3>
+    <h3>📋 INVENTARIO Y STOCK</h3>
     <table id="tabla-productos">
         <thead>
             <tr><th>Código</th><th>Producto</th><th>Precio</th><th>Stock</th><th>Acción</th></tr>
@@ -86,13 +67,13 @@
 
     <h3>👥 LIBRETA DE FIADOS</h3>
     <div style="display: flex; gap: 10px;">
-        <input type="text" id="fiado-cliente" placeholder="Nombre">
-        <input type="number" id="fiado-monto" placeholder="Monto">
+        <input type="text" id="fiado-cliente" placeholder="Nombre del Cliente">
+        <input type="number" id="fiado-monto" placeholder="Monto $">
         <button class="btn-save" style="width: auto;" onclick="agregarFiado()">➕ ANOTAR</button>
     </div>
     <table id="tabla-fiados">
         <thead>
-            <tr><th>Cliente</th><th>Deuda</th><th>Acción</th></tr>
+            <tr><th>Cliente</th><th>Deuda Acumulada</th><th>Acción</th></tr>
         </thead>
         <tbody></tbody>
     </table>
@@ -100,14 +81,15 @@
     <h3>📅 HISTORIAL DE CIERRES PASADOS</h3>
     <table id="tabla-historial">
         <thead>
-            <tr><th>Fecha</th><th>Efectivo</th><th>Tarj/QR</th><th>Total</th></tr>
+            <tr><th>Fecha</th><th>Efectivo</th><th>Tarj/QR</th><th>Total Día</th></tr>
         </thead>
         <tbody id="cuerpo-historial"></tbody>
     </table>
-
-    <div style="margin-top: 40px; font-size: 12px; opacity: 0.5;">
-        Token Nube: <input type="password" id="gh-token" onchange="guardarToken()" style="width: 100px; padding: 2px;">
-        Status: <span id="token-status">...</span>
+    
+    <div style="margin-top: 40px; padding: 15px; background: #252525; border-radius: 8px;">
+        <small>🔑 Nube: <span id="token-status">Cargando...</span></small>
+        <input type="password" id="gh-token" placeholder="Token GitHub" style="font-size: 10px; padding: 5px; margin-top: 5px;">
+        <button onclick="guardarToken()" style="font-size: 10px;">Validar</button>
     </div>
 </div>
 
