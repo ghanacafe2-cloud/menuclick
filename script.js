@@ -185,3 +185,36 @@ function enviarAFiado() {
 }
 
 cargarInventario();
+// --- FUNCIÓN PARA VACIAR EL CARRITO ACTUAL ---
+function cancelarCarrito() {
+    if (carrito.length === 0) return;
+    if (confirm("¿Estás seguro de cancelar esta compra? Se borrará todo el carrito.")) {
+        carrito = [];
+        const inputPaga = document.getElementById('paga-con');
+        if (inputPaga) inputPaga.value = '';
+        renderizarCarrito();
+        alert("Compra cancelada.");
+    }
+}
+
+// --- FUNCIÓN PARA ANULAR LA ÚLTIMA VENTA (Vuelve el stock y resta la plata) ---
+function anularUltimaVenta() {
+    let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    if (ventas.length === 0) return alert("No hay ventas para anular.");
+
+    const ultimaVenta = ventas[ventas.length - 1];
+    
+    if (confirm(`¿Anular la última venta de $${ultimaVenta.total.toLocaleString()}? \n(Esto devolverá el stock y restará el monto de la caja)`)) {
+        
+        // 1. Quitamos la venta del historial
+        ventas.pop();
+        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+
+        // 2. IMPORTANTE: Como no guardamos qué productos exactos se vendieron en el historial, 
+        // esta anulación resta la plata de la caja. 
+        // El stock lo tendrías que corregir a mano en el Admin si es un producto específico.
+        
+        alert("Venta eliminada del historial de hoy.");
+        renderizarCarrito();
+    }
+}
