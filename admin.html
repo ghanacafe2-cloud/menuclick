@@ -44,14 +44,15 @@
         <button class="btn-danger" style="width: 100%; padding: 15px; font-weight: bold;" onclick="borrarVentas()">🏁 CERRAR CAJA Y GUARDAR DÍA</button>
     </div>
 
+    <!-- SECCIÓN ÚNICA DE GASTOS -->
     <h3>💸 REGISTRAR SALIDA DE PLATA (GASTO)</h3>
     <div style="display: flex; gap: 10px; background: #252525; padding: 15px; border-radius: 8px;">
-        <input type="text" id="gasto-detalle" placeholder="¿En qué se gastó? (Ej: Panadero)" style="margin-bottom:0">
+        <input type="text" id="gasto-detalle" placeholder="¿En qué se gastó? (Ej: Hielo)" style="margin-bottom:0">
         <input type="number" id="gasto-monto" placeholder="Monto $" style="margin-bottom:0">
         <button class="btn-gasto" onclick="registrarGasto()">➖ REGISTRAR</button>
     </div>
 
-    <h4 style="margin-top: 20px; color: #e67e22;">📝 REGISTRO DE PAGOS DEL DÍA</h4>
+    <h4 style="margin-top: 20px; color: #e67e22;">📝 REGISTRO DE PAGOS REALIZADOS</h4>
     <table>
         <thead>
             <tr><th>Hora</th><th>Detalle</th><th>Monto</th><th>Acción</th></tr>
@@ -67,8 +68,8 @@
     <h3>🆕 CARGAR / EDITAR PRODUCTO</h3>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <input type="text" id="admin-codigo" placeholder="Código / Escaneo">
-        <input type="number" id="admin-stock" placeholder="Stock">
-        <input type="text" id="admin-nombre" placeholder="Nombre">
+        <input type="number" id="admin-stock" placeholder="Stock Inicial">
+        <input type="text" id="admin-nombre" placeholder="Nombre del Producto">
         <input type="number" id="admin-precio" placeholder="Precio $">
     </div>
     <select id="admin-tipo">
@@ -85,7 +86,7 @@
 
     <h3>👥 LIBRETA DE FIADOS</h3>
     <div style="display: flex; gap: 10px;">
-        <input type="text" id="fiado-cliente" placeholder="Nombre">
+        <input type="text" id="fiado-cliente" placeholder="Nombre del Cliente">
         <input type="number" id="fiado-monto" placeholder="Monto $">
         <button class="btn-save" style="width: auto;" onclick="agregarFiado()">➕ ANOTAR</button>
     </div>
@@ -94,16 +95,11 @@
         <tbody id="tabla-fiados-body"></tbody>
     </table>
 
-    <h3>📅 CIERRES ANTERIORES</h3>
+    <h3>📅 CIERRES PASADOS (ÚLTIMOS 5)</h3>
     <table>
         <thead><tr><th>Fecha</th><th>Efectivo</th><th>Otros</th><th>Total</th></tr></thead>
         <tbody id="cuerpo-historial"></tbody>
     </table>
-
-    <div style="margin-top: 40px; font-size: 11px; opacity: 0.4;">
-        Token Nube: <input type="password" id="gh-token" onchange="guardarToken()" style="width: 80px; padding: 2px;">
-        Status: <span id="token-status">...</span>
-    </div>
 </div>
 
 <script src="admin.js"></script>
