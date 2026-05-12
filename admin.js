@@ -38,7 +38,7 @@ async function subirAGithub(data) {
     } catch (e) { }
 }
 
-// --- GESTIÓN DE GASTOS ---
+// --- GESTIÓN DE GASTOS (PAGOS) ---
 function registrarGasto() {
     const det = document.getElementById('gasto-detalle').value.trim();
     const mon = parseFloat(document.getElementById('gasto-monto').value);
@@ -96,27 +96,17 @@ function borrarGastoIndividual(indexVentaOriginal) {
 }
 
 function limpiarSoloGastos() {
-    // Traemos lo que hay en memoria
     let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    
-    // Si no hay nada, ni nos gastamos
     if (ventas.length === 0) return alert("No hay nada para limpiar.");
 
-    if (confirm("¿Querés borrar visualmente los pagos de la lista? \n\n⚠️ OJO: Esto no afecta el total de la caja, solo limpia la tabla para que no se vea tan larga.")) {
-        
-        // Filtramos: "Dejame solo las cosas que NO sean gastos (total > 0)"
-        // Las ventas (positivas) se quedan, los gastos (negativos) se van.
+    if (confirm("¿Querés borrar visualmente los pagos de la lista? \n\n⚠️ OJO: Esto no afecta el total de la caja.")) {
         const ventasLimpias = ventas.filter(item => item.total >= 0);
-        
-        // Guardamos la lista sin los gastos
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventasLimpias));
-        
-        // Refrescamos las tablas
         actualizarTodo();
-        
         alert("Lista de pagos despejada.");
     }
 }
+
 // --- PRODUCTOS ---
 async function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
@@ -137,7 +127,12 @@ async function guardarProducto() {
 }
 
 function eliminarProducto(index) {
-    if (confirm("¿Borrar?")) { inventario.splice(index, 1); localStorage.setItem('inventario', JSON.stringify(inventario)); subirAGithub(inventario); actualizarTodo(); }
+    if (confirm("¿Borrar?")) { 
+        inventario.splice(index, 1); 
+        localStorage.setItem('inventario', JSON.stringify(inventario)); 
+        subirAGithub(inventario); 
+        actualizarTodo(); 
+    }
 }
 
 // --- FIADOS ---
@@ -168,7 +163,7 @@ function cobrarFiado(index) {
     }
 }
 
-// --- CIERRE ---
+// --- CIERRE DE CAJA ---
 function borrarVentas() {
     const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     if (v.length === 0) return alert("No hay ventas");
@@ -187,8 +182,19 @@ function borrarVentas() {
     }
 }
 
+// --- BORRAR HISTORIAL ---
+function borrarCierreHistorial(index) {
+    if (confirm("¿Estás seguro de borrar este cierre del historial? No se puede deshacer.")) {
+        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+        h.splice(index, 1); 
+        localStorage.setItem('historial_cierres', JSON.stringify(h));
+        actualizarTodo(); 
+    }
+}
+
 // --- ACTUALIZAR PANTALLA ---
 function actualizarTodo() {
+    // 1. Totales de caja
     const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     let e=0, t=0, q=0;
     v.forEach(x => { 
@@ -202,6 +208,7 @@ function actualizarTodo() {
     document.getElementById('total-qr').innerText = `$${q.toLocaleString()}`;
     document.getElementById('total-general').innerText = `$${(e+t+q).toLocaleString()}`;
 
+    // 2. Tabla Productos e Inventario
     const tbodyProd = document.querySelector('#tabla-productos tbody');
     tbodyProd.innerHTML = '';
     const reposicion = [];
@@ -219,40 +226,33 @@ function actualizarTodo() {
         alerta.style.display = 'none';
     }
 
+    // 3. Tabla Fiados
     const tbodyFiado = document.querySelector('#tabla-fiados tbody');
     tbodyFiado.innerHTML = '';
     fiados.forEach((f, i) => {
         tbodyFiado.innerHTML += `<tr><td>${f.cliente}</td><td style="color:#ff5252">$${f.monto}</td><td><button onclick="cobrarFiado(${i})" style="background:#4caf50; border:none; color:white; border-radius:4px; cursor:pointer; padding: 5px;">PAGÓ</button></td></tr>`;
     });
 
-const tbodyHist = document.getElementById('cuerpo-historial');
+    // 4. Tabla Historial de Cierres (con botón de borrar)
+    const tbodyHist = document.getElementById('cuerpo-historial');
     tbodyHist.innerHTML = '';
     const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-    
-    // Usamos el índice original para poder borrar correctamente
     [...h].reverse().forEach((c, index) => {
-        // Calculamos el índice real (porque el reverse lo cambia)
         const realIndex = h.length - 1 - index;
-        
         tbodyHist.innerHTML += `
             <tr>
                 <td>${c.fecha}</td>
                 <td>$${c.efectivo.toLocaleString()}</td>
                 <td>$${c.otros.toLocaleString()}</td>
                 <td>$${c.total.toLocaleString()}</td>
-                <td>
-                    <button class="btn-danger" onclick="borrarCierreHistorial(${realIndex})">🗑️</button>
-                </td>
+                <td><button class="btn-danger" onclick="borrarCierreHistorial(${realIndex})">🗑️</button></td>
             </tr>`;
     });
-function borrarCierreHistorial(index) {
-    if (confirm("¿Estás seguro de borrar este cierre del historial? No se puede deshacer.")) {
-        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        h.splice(index, 1); // Borra el cierre elegido
-        localStorage.setItem('historial_cierres', JSON.stringify(h));
-        actualizarTodo(); // Refresca la tabla
-    }
+
+    // 5. Tabla de Gastos/Pagos
+    dibujarTablaGastos(); 
 }
+
 function limpiarFormulario() { 
     document.getElementById('admin-codigo').value = ''; 
     document.getElementById('admin-nombre').value = ''; 
@@ -274,6 +274,6 @@ function anularUltimaVentaAdmin() {
     }
 }
 
-// Al cargar por primera vez
+// Inicialización
 validarToken();
 actualizarTodo();
