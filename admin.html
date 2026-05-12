@@ -1,109 +1,116 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiosco - POS Profesional</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; margin: 0; }
-        
-        /* Encabezado con Logo */
-        header { 
-            background: #1a3a5a; 
-            color: white; 
-            padding: 10px 20px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        .logo-container img {
-            height: 65px;
-            width: auto;
-            border-radius: 8px;
-            background: white;
-            padding: 3px;
-            object-fit: contain;
-        }
-        .header-text h1 { margin: 0; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 1px; }
-        .header-text p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
-
-        #contenedor { display: flex; flex: 1; padding: 15px; gap: 15px; overflow: hidden; }
-        #ventas { flex: 2; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-y: auto; display: flex; flex-direction: column; }
-        #totales { flex: 1; background: #fff; padding: 25px; border-radius: 12px; border: 2px solid #1a3a5a; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        input#codigo { width: 100%; padding: 18px; font-size: 1.3rem; margin-bottom: 15px; border: 3px solid #1a3a5a; border-radius: 8px; box-sizing: border-box; background: #fffde7; outline: none; }
-        .producto-fila { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 12px 0; align-items: center; font-size: 1.1rem; }
-        
-        .total-nro { font-size: 3.8rem; color: #1a3a5a; font-weight: bold; text-align: center; margin: 15px 0; }
-        
-        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.4rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.3s; }
-        .btn-finalizar:hover { background: #218838; }
-        
-        .btn-fiado { background: #1a3a5a; color: white; border: none; padding: 15px; font-size: 1.1rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 10px; }
-        
-        .btn-eliminar { background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
-        
-        .caja-vuelto { background: #fff9c4; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px solid #fbc02d; }
-        
-        select { padding: 12px; font-size: 1.1rem; border-radius: 8px; border: 1px solid #ccc; width: 100%; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - Kiosco El Cholo</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #121212; color: #e0e0e0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 12px; border: 1px solid #333; }
+        h3 { color: #fbc02d; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px; }
+        
+        /* Dashboard de Dinero */
+        .grid-reporte { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .caja { background: #252525; padding: 20px; border-radius: 10px; text-align: center; border-left: 5px solid #fbc02d; }
+        .caja b { font-size: 1.5rem; display: block; margin-top: 10px; color: #fff; }
+        .total-dia { background: #fbc02d; color: #121212; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.5rem; }
+        
+        /* Alertas de Stock */
+        #alerta-reposicion { background: #4a0e0e; border: 2px solid #e74c3c; padding: 15px; border-radius: 8px; margin: 20px 0; display: none; }
+        
+        /* Tablas */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #252525; border-radius: 8px; overflow: hidden; }
+        th { background: #333; color: #fbc02d; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #333; }
+        
+        /* Inputs y Botones */
+        input, select { background: #333; border: 1px solid #444; color: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+        .btn-save { background: #fbc02d; color: #121212; border: none; font-weight: bold; cursor: pointer; padding: 12px; border-radius: 6px; width: 100%; }
+        .btn-danger { background: #e74c3c; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
+        .btn-gasto { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-nav { background: #444; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
+        
+        .status-low { color: #ff5252; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+    </style>
 </head>
 <body>
 
-<header>
-    <div class="logo-container">
-        <img src="logo10.png" alt="Logo" onerror="this.src='https://via.placeholder.com/60?text=LOGO'">
-    </div>
-    <div class="header-text">
-        <h1>KIOSCO EL CHOLO</h1>
-        <p>Sistema de Gestión de Ventas</p>
-    </div>
-</header>
+<div class="container">
+    <button class="btn-nav" onclick="window.location.href='index.html'">⬅ VOLVER AL MOSTRADOR</button>
 
-<div id="contenedor">
-    <div id="ventas">
-        <input type="text" id="codigo" placeholder="Gatille aquí para escanear..." autofocus>
-        
-        <div id="lista-productos">
-            <p style="color: gray; text-align: center; margin-top: 40px; font-style: italic;">Esperando escaneo de producto...</p>
-        </div>
-    </div>
+    <h3>📊 CAJA DEL DÍA (INGRESOS - GASTOS)</h3>
+    <div class="grid-reporte">
+        <div class="caja"><p>💵 Efectivo Neto</p><b id="total-efectivo">$0,00</b></div>
+        <div class="caja"><p>💳 Tarjeta</p><b id="total-debito">$0,00</b></div>
+        <div class="caja"><p>📱 QR / MP</p><b id="total-qr">$0,00</b></div>
+    </div>
+    <div class="total-dia">EN CAJA AHORA: <span id="total-general">$0,00</span></div>
+    
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button class="btn-danger" style="flex: 1;" onclick="borrarVentas()">🏁 CERRAR CAJA Y GUARDAR DÍA</button>
+    </div>
 
-    <div id="totales">
-        <div>
-            <h2 style="text-align: center; margin: 0; font-size: 1.1rem; color: #555;">TOTAL A COBRAR</h2>
-            <div class="total-nro" id="total-display">$0,00</div>
-        </div>
-        
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <label><strong>Medio de Pago:</strong></label>
-            <select id="metodo-pago">
-                <option value="efectivo">💵 EFECTIVO</option>
-                <option value="debito">💳 DÉBITO / CRÉDITO</option>
-                <option value="qr">📱 MERCADO PAGO / QR</option>
-            </select>
+    <h3>💸 REGISTRAR SALIDA DE PLATA (GASTO)</h3>
+    <div style="display: flex; gap: 10px; background: #252525; padding: 15px; border-radius: 8px;">
+        <input type="text" id="gasto-detalle" placeholder="Ej: Pago a Panadero" style="margin-bottom:0">
+        <input type="number" id="gasto-monto" placeholder="Monto $" style="margin-bottom:0">
+        <button class="btn-gasto" onclick="registrarGasto()">➖ RESTAR</button>
+    </div>
 
-            <div class="caja-vuelto">
-                <label>💰 <strong>Paga con:</strong></label>
-                <input type="number" id="paga-con" oninput="calcularVuelto()" placeholder="Ej: 5000" style="width: 100%; padding: 10px; margin-top: 5px; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 6px;">
-                <p style="margin: 10px 0 0 0; font-size: 1.3rem; text-align: center;">
-                    <strong>Vuelto: <span id="vuelto-display" style="color: #2e7d32;">$0,00</span></strong>
-                </p>
-            </div>
+    <div id="alerta-reposicion">
+        <h4 style="margin: 0; color: #ff5252;">⚠️ FALTA MERCADERÍA:</h4>
+        <ul id="lista-reposicion" style="margin: 10px 0 0 0; color: white;"></ul>
+    </div>
 
-            <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
-            <button onclick="cancelarCarrito()" style="background: #e74c3c; color: white; border: none; padding: 10px; font-size: 1rem; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; margin-top: 10px;">
-            🚫 CANCELAR COMPRA ACTUAL
-             </button>
-            <button class="btn-fiado" onclick="enviarAFiado()">📝 ANOTAR EN FIADOS</button>
-            
-            <button onclick="window.location.href='admin.html'" style="background: none; border: none; color: #1a3a5a; text-decoration: underline; cursor: pointer; margin-top: 8px; font-size: 0.9rem;">⚙️ Panel Administración</button>
-        </div>
-    </div>
+    <h3>🆕 CARGAR / EDITAR PRODUCTO</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <input type="text" id="admin-codigo" placeholder="Código / Escaneo" autofocus>
+        <input type="number" id="admin-stock" placeholder="Stock">
+        <input type="text" id="admin-nombre" placeholder="Nombre">
+        <input type="number" id="admin-precio" placeholder="Precio $">
+    </div>
+    <select id="admin-tipo">
+        <option value="fijo">Precio Fijo</option>
+        <option value="variable">Precio Variable (Peso)</option>
+    </select>
+    <button id="btn-guardar" class="btn-save" onclick="guardarProducto()">💾 GUARDAR EN INVENTARIO</button>
+
+    <h3>📋 INVENTARIO</h3>
+    <table id="tabla-productos">
+        <thead>
+            <tr><th>Código</th><th>Producto</th><th>Precio</th><th>Stock</th><th>Acción</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h3>👥 LIBRETA DE FIADOS</h3>
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="fiado-cliente" placeholder="Nombre">
+        <input type="number" id="fiado-monto" placeholder="Monto">
+        <button class="btn-save" style="width: auto;" onclick="agregarFiado()">➕ ANOTAR</button>
+    </div>
+    <table id="tabla-fiados">
+        <thead>
+            <tr><th>Cliente</th><th>Deuda</th><th>Acción</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h3>📅 HISTORIAL DE CIERRES PASADOS</h3>
+    <table id="tabla-historial">
+        <thead>
+            <tr><th>Fecha</th><th>Efectivo</th><th>Tarj/QR</th><th>Total</th></tr>
+        </thead>
+        <tbody id="cuerpo-historial"></tbody>
+    </table>
+
+    <div style="margin-top: 40px; font-size: 12px; opacity: 0.5;">
+        Token Nube: <input type="password" id="gh-token" onchange="guardarToken()" style="width: 100px; padding: 2px;">
+        Status: <span id="token-status">...</span>
+    </div>
 </div>
 
-<script src="script.js"></script>
+<script src="admin.js"></script>
 </body>
-</html>....tiene dos 💸 REGISTRAR SALIDA DE PLATA (GASTO) me lo reparas  porfa no le cambies los colores
+</html>
