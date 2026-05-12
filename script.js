@@ -10,7 +10,6 @@ function cargarInventario() {
         productosDB = JSON.parse(datosLocales);
         console.log("Inventario cargado.");
     } else {
-        // Datos por defecto si el local está vacío
         productosDB = [
             { id: "PAN", nombre: "Pan Francés (kg)", precio: 0, tipo: "variable", stock: 999 },
             { id: "7790070411730", nombre: "Yerba Mate", precio: 2500, tipo: "fijo", stock: 10 }
@@ -18,7 +17,7 @@ function cargarInventario() {
     }
 }
 
-// 2. ESCUCHA DE LA PISTOLITA (Corregido)
+// 2. ESCUCHA DE LA PISTOLITA
 const inputCodigo = document.getElementById('codigo');
 if (inputCodigo) {
     inputCodigo.addEventListener('keypress', (e) => {
@@ -32,11 +31,17 @@ if (inputCodigo) {
     });
 }
 
-// 3. LÓGICA DE ESCANEO
+// 3. LÓGICA DE ESCANEO (Con bloqueo de Stock)
 function procesarEscaneo(codigo) {
     const producto = productosDB.find(p => p.id === codigo);
 
     if (producto) {
+        // --- BLOQUEO POR FALTA DE STOCK ---
+        if (producto.stock <= 0) {
+            alert(`⚠️ ¡SIN STOCK! El producto "${producto.nombre}" no tiene unidades disponibles.`);
+            return; // Corta aquí, no deja agregar
+        }
+
         if (producto.tipo === "variable") {
             const precioManual = parseFloat(prompt(`Precio para ${producto.nombre}:`));
             if (!isNaN(precioManual) && precioManual > 0) {
@@ -108,13 +113,12 @@ function calcularVuelto() {
     }
 }
 
-// 6. FINALIZAR VENTA (Corregida la llave que rompía todo)
+// 6. FINALIZAR VENTA
 function finalizarVenta() {
     if (carrito.length === 0) return alert("El carrito está vacío");
 
     const metodo = document.getElementById('metodo-pago').value;
 
-    // --- LÓGICA DE DESCUENTO DE STOCK ---
     carrito.forEach(itemVendido => {
         const productoEnDB = productosDB.find(p => p.nombre === itemVendido.nombre);
         if (productoEnDB && productoEnDB.stock > 0) {
@@ -122,21 +126,19 @@ function finalizarVenta() {
         }
     });
     
-    // Guardar inventario con menos stock
     localStorage.setItem('inventario', JSON.stringify(productosDB));
 
-    // Guardar la venta en el historial para el Admin
     const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     ventasHistoricas.push({
         total: totalVenta,
         metodo: metodo,
-        fecha: new Date().toISOString()
+        fecha: new Date().toLocaleString(),
+        detalle: "Venta Mostrador"
     });
     localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
 
     alert(`✅ VENTA GUARDADA\nTotal: $${totalVenta.toLocaleString('es-AR')}`);
 
-    // Limpiar para el próximo cliente
     carrito = [];
     const inputPaga = document.getElementById('paga-con');
     if (inputPaga) inputPaga.value = '';
@@ -145,32 +147,29 @@ function finalizarVenta() {
     if(inputCodigo) inputCodigo.focus();
 }
 
-// 7. FOCO INTELIGENTE
+// 7. FOCO INTELIGENTE Y FIADOS
 window.onclick = function(e) {
     const elementosLibres = ['BUTTON', 'INPUT', 'SELECT', 'OPTION', 'TEXTAREA'];
     if (!elementosLibres.includes(e.target.tagName)) {
         if (inputCodigo) inputCodigo.focus();
     }
 };
+
 function enviarAFiado() {
     if (carrito.length === 0) return alert("El carrito está vacío");
 
     const cliente = prompt("¿A quién le anotamos este fiado?");
-    if (!cliente) return; // Si cancela, no hace nada
+    if (!cliente) return;
 
-    // 1. Traemos los fiados actuales del Admin
     let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
-
-    // 2. Buscamos si el cliente ya debe algo
     const index = fiados.findIndex(f => f.cliente.toUpperCase() === cliente.toUpperCase());
     
     if (index > -1) {
-        fiados[index].monto += totalVenta; // Suma a lo que ya debía
+        fiados[index].monto += totalVenta;
     } else {
-        fiados.push({ cliente: cliente, monto: totalVenta }); // Cliente nuevo
+        fiados.push({ cliente: cliente, monto: totalVenta });
     }
 
-    // 3. Guardamos y descontamos stock (porque la mercadería se va)
     localStorage.setItem('fiados', JSON.stringify(fiados));
     
     carrito.forEach(itemVendido => {
@@ -181,9 +180,8 @@ function enviarAFiado() {
 
     alert(`📝 Anotado en la cuenta de ${cliente}\nTotal nuevo fiado: $${totalVenta.toLocaleString('es-AR')}`);
 
-    // 4. Limpiamos el mostrador
     carrito = [];
     renderizarCarrito();
 }
-// Iniciar
+
 cargarInventario();
