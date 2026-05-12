@@ -95,10 +95,28 @@ function borrarGastoIndividual(indexVentaOriginal) {
     }
 }
 
-function limpiarHistorialGastos() {
-    alert("Los gastos se limpian automáticamente al presionar 'Cerrar Caja'.");
-}
+function limpiarSoloGastos() {
+    // Traemos lo que hay en memoria
+    let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    
+    // Si no hay nada, ni nos gastamos
+    if (ventas.length === 0) return alert("No hay nada para limpiar.");
 
+    if (confirm("¿Querés borrar visualmente los pagos de la lista? \n\n⚠️ OJO: Esto no afecta el total de la caja, solo limpia la tabla para que no se vea tan larga.")) {
+        
+        // Filtramos: "Dejame solo las cosas que NO sean gastos (total > 0)"
+        // Las ventas (positivas) se quedan, los gastos (negativos) se van.
+        const ventasLimpias = ventas.filter(item => item.total >= 0);
+        
+        // Guardamos la lista sin los gastos
+        localStorage.setItem('ventas_realizadas', JSON.stringify(ventasLimpias));
+        
+        // Refrescamos las tablas
+        actualizarTodo();
+        
+        alert("Lista de pagos despejada.");
+    }
+}
 // --- PRODUCTOS ---
 async function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
