@@ -1,163 +1,109 @@
-const USERNAME = "ghanacafe2-cloud"; 
-const REPO = "menuclick";
-const FILE_PATH = "productos.json";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosco - POS Profesional</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        
+        /* Encabezado con Logo */
+        header { 
+            background: #1a3a5a; 
+            color: white; 
+            padding: 10px 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .logo-container img {
+            height: 65px;
+            width: auto;
+            border-radius: 8px;
+            background: white;
+            padding: 3px;
+            object-fit: contain;
+        }
+        .header-text h1 { margin: 0; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 1px; }
+        .header-text p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
 
-let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
-let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
+        #contenedor { display: flex; flex: 1; padding: 15px; gap: 15px; overflow: hidden; }
+        #ventas { flex: 2; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-y: auto; display: flex; flex-direction: column; }
+        #totales { flex: 1; background: #fff; padding: 25px; border-radius: 12px; border: 2px solid #1a3a5a; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        input#codigo { width: 100%; padding: 18px; font-size: 1.3rem; margin-bottom: 15px; border: 3px solid #1a3a5a; border-radius: 8px; box-sizing: border-box; background: #fffde7; outline: none; }
+        .producto-fila { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 12px 0; align-items: center; font-size: 1.1rem; }
+        
+        .total-nro { font-size: 3.8rem; color: #1a3a5a; font-weight: bold; text-align: center; margin: 15px 0; }
+        
+        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.4rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.3s; }
+        .btn-finalizar:hover { background: #218838; }
+        
+        .btn-fiado { background: #1a3a5a; color: white; border: none; padding: 15px; font-size: 1.1rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 10px; }
+        
+        .btn-eliminar { background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
+        
+        .caja-vuelto { background: #fff9c4; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px solid #fbc02d; }
+        
+        select { padding: 12px; font-size: 1.1rem; border-radius: 8px; border: 1px solid #ccc; width: 100%; }
+    </style>
+</head>
+<body>
 
-// --- FUNCIONES DE GASTOS ---
-function registrarGasto() {
-    const det = document.getElementById('gasto-detalle').value.trim();
-    const mon = parseFloat(document.getElementById('gasto-monto').value);
-    
-    if (!det || isNaN(mon)) return alert("Poné detalle y monto");
-    
-    if (confirm(`¿Pagar $${mon} por ${det}?`)) {
-        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        ventas.push({ 
-            total: -mon, 
-            metodo: 'efectivo', 
-            fecha: new Date().toLocaleString(), 
-            detalle: `GASTO: ${det}` 
-        });
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
-        document.getElementById('gasto-detalle').value = '';
-        document.getElementById('gasto-monto').value = '';
-        actualizarTodo();
-    }
-}
+<header>
+    <div class="logo-container">
+        <img src="logo10.png" alt="Logo" onerror="this.src='https://via.placeholder.com/60?text=LOGO'">
+    </div>
+    <div class="header-text">
+        <h1>KIOSCO EL CHOLO</h1>
+        <p>Sistema de Gestión de Ventas</p>
+    </div>
+</header>
 
-function borrarGastoIndividual(idx) {
-    if (confirm("¿Borrar este registro?")) {
-        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        ventas.splice(idx, 1);
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
-        actualizarTodo();
-    }
-}
+<div id="contenedor">
+    <div id="ventas">
+        <input type="text" id="codigo" placeholder="Gatille aquí para escanear..." autofocus>
+        
+        <div id="lista-productos">
+            <p style="color: gray; text-align: center; margin-top: 40px; font-style: italic;">Esperando escaneo de producto...</p>
+        </div>
+    </div>
 
-// --- ACTUALIZACIÓN DE PANTALLA ---
-function actualizarTodo() {
-    const ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    let efec = 0, otros = 0;
+    <div id="totales">
+        <div>
+            <h2 style="text-align: center; margin: 0; font-size: 1.1rem; color: #555;">TOTAL A COBRAR</h2>
+            <div class="total-nro" id="total-display">$0,00</div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <label><strong>Medio de Pago:</strong></label>
+            <select id="metodo-pago">
+                <option value="efectivo">💵 EFECTIVO</option>
+                <option value="debito">💳 DÉBITO / CRÉDITO</option>
+                <option value="qr">📱 MERCADO PAGO / QR</option>
+            </select>
 
-    // Totales y Tabla de Gastos
-    const cuerpoGastos = document.getElementById('cuerpo-gastos');
-    cuerpoGastos.innerHTML = '';
+            <div class="caja-vuelto">
+                <label>💰 <strong>Paga con:</strong></label>
+                <input type="number" id="paga-con" oninput="calcularVuelto()" placeholder="Ej: 5000" style="width: 100%; padding: 10px; margin-top: 5px; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 6px;">
+                <p style="margin: 10px 0 0 0; font-size: 1.3rem; text-align: center;">
+                    <strong>Vuelto: <span id="vuelto-display" style="color: #2e7d32;">$0,00</span></strong>
+                </p>
+            </div>
 
-    ventas.forEach((v, index) => {
-        if (v.metodo === 'efectivo') efec += v.total;
-        else otros += v.total;
+            <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
+            <button onclick="cancelarCarrito()" style="background: #e74c3c; color: white; border: none; padding: 10px; font-size: 1rem; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; margin-top: 10px;">
+            🚫 CANCELAR COMPRA ACTUAL
+             </button>
+            <button class="btn-fiado" onclick="enviarAFiado()">📝 ANOTAR EN FIADOS</button>
+            
+            <button onclick="window.location.href='admin.html'" style="background: none; border: none; color: #1a3a5a; text-decoration: underline; cursor: pointer; margin-top: 8px; font-size: 0.9rem;">⚙️ Panel Administración</button>
+        </div>
+    </div>
+</div>
 
-        if (v.total < 0) {
-            cuerpoGastos.innerHTML += `
-                <tr>
-                    <td>${v.fecha.split(', ')[1] || v.fecha}</td>
-                    <td>${v.detalle}</td>
-                    <td style="color:#ff5252">-$${Math.abs(v.total)}</td>
-                    <td><button class="btn-danger" onclick="borrarGastoIndividual(${index})">🗑️</button></td>
-                </tr>`;
-        }
-    });
-
-    document.getElementById('total-efectivo').innerText = `$${efec.toLocaleString()}`;
-    document.getElementById('total-otros').innerText = `$${otros.toLocaleString()}`;
-    document.getElementById('total-general').innerText = `$${(efec + otros).toLocaleString()}`;
-
-    // Inventario y Alerta Reposición
-    const tbodyProd = document.querySelector('#tabla-productos tbody');
-    const listaRep = document.getElementById('lista-reposicion');
-    const alertaRep = document.getElementById('alerta-reposicion');
-    tbodyProd.innerHTML = '';
-    listaRep.innerHTML = '';
-    let faltantes = 0;
-
-    inventario.forEach((p, i) => {
-        if (p.stock <= 3) {
-            faltantes++;
-            listaRep.innerHTML += `<li>${p.nombre} (Quedan: ${p.stock})</li>`;
-        }
-        tbodyProd.innerHTML += `<tr>
-            <td>${p.id}</td>
-            <td>${p.nombre}</td>
-            <td>$${p.precio}</td>
-            <td class="${p.stock <= 3 ? 'status-low' : ''}">${p.stock}</td>
-            <td><button class="btn-danger" onclick="eliminarProducto(${i})">🗑️</button></td>
-        </tr>`;
-    });
-    alertaRep.style.display = faltantes > 0 ? 'block' : 'none';
-
-    // Fiados
-    const tbodyFiados = document.getElementById('tabla-fiados-body');
-    tbodyFiados.innerHTML = '';
-    fiados.forEach((f, i) => {
-        tbodyFiados.innerHTML += `<tr>
-            <td>${f.cliente}</td>
-            <td style="color:#ff5252">$${f.monto}</td>
-            <td><button onclick="cobrarFiado(${i})" style="background:#4caf50; border:none; color:white; padding:5px; border-radius:4px; cursor:pointer;">PAGÓ</button></td>
-        </tr>`;
-    });
-
-    // Historial Cierres
-    const histBody = document.getElementById('cuerpo-historial');
-    histBody.innerHTML = '';
-    const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-    h.reverse().slice(0, 5).forEach(c => {
-        histBody.innerHTML += `<tr><td>${c.fecha}</td><td>$${c.efectivo}</td><td>$${c.otros}</td><td>$${c.total}</td></tr>`;
-    });
-}
-
-// --- OTRAS FUNCIONES (Resumidas para que funcionen directo) ---
-function guardarProducto() {
-    const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
-    const nom = document.getElementById('admin-nombre').value.trim();
-    const pre = parseFloat(document.getElementById('admin-precio').value);
-    const stk = parseInt(document.getElementById('admin-stock').value) || 0;
-    const tip = document.getElementById('admin-tipo').value;
-    if (!id || !nom || isNaN(pre)) return alert("Faltan datos");
-    const idx = inventario.findIndex(p => p.id === id);
-    if (idx > -1) inventario[idx] = { id, nombre: nom, precio: pre, tipo: tip, stock: stk };
-    else inventario.push({ id, nombre: nom, precio: pre, tipo: tip, stock: stk });
-    localStorage.setItem('inventario', JSON.stringify(inventario));
-    actualizarTodo();
-}
-
-function eliminarProducto(i) { if (confirm("¿Borrar?")) { inventario.splice(i, 1); localStorage.setItem('inventario', JSON.stringify(inventario)); actualizarTodo(); } }
-
-function agregarFiado() {
-    const cli = document.getElementById('fiado-cliente').value.trim();
-    const mon = parseFloat(document.getElementById('fiado-monto').value);
-    if (!cli || isNaN(mon)) return;
-    const idx = fiados.findIndex(f => f.cliente.toUpperCase() === cli.toUpperCase());
-    if (idx > -1) fiados[idx].monto += mon;
-    else fiados.push({ cliente: cli, monto: mon });
-    localStorage.setItem('fiados', JSON.stringify(fiados));
-    actualizarTodo();
-}
-
-function cobrarFiado(i) {
-    const f = fiados[i];
-    const met = prompt(`¿Cómo paga ${f.cliente}? \n1: Efectivo\n2: Otros`) === "1" ? "efectivo" : "otros";
-    let v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    v.push({ total: f.monto, metodo: met, fecha: new Date().toLocaleString(), detalle: `COBRO FIADO: ${f.cliente}` });
-    localStorage.setItem('ventas_realizadas', JSON.stringify(v));
-    fiados.splice(i, 1);
-    localStorage.setItem('fiados', JSON.stringify(fiados));
-    actualizarTodo();
-}
-
-function borrarVentas() {
-    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    if (v.length === 0) return alert("No hay movimientos");
-    if (confirm("¿Cerrar caja?")) {
-        let e = 0, o = 0;
-        v.forEach(x => { if(x.metodo==='efectivo') e+=x.total; else o+=x.total; });
-        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        h.push({ fecha: new Date().toLocaleDateString(), efectivo: e, otros: o, total: e+o });
-        localStorage.setItem('historial_cierres', JSON.stringify(h));
-        localStorage.removeItem('ventas_realizadas');
-        actualizarTodo();
-    }
-}
-
-actualizarTodo();
+<script src="script.js"></script>
+</body>
+</html>....tiene dos 💸 REGISTRAR SALIDA DE PLATA (GASTO) me lo reparas  porfa no le cambies los colores
