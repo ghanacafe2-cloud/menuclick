@@ -7,7 +7,7 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; margin: 0; }
         
-        /* Encabezado con Logo */
+        /* Encabezado */
         header { 
             background: #1a3a5a; 
             color: white; 
@@ -26,47 +26,55 @@
             padding: 3px;
             object-fit: contain;
         }
-        .sugerencias-container {
-    background: #252525;
-    border-radius: 0 0 8px 8px;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.sugerencia-item {
-    padding: 12px;
-    border-bottom: 1px solid #333;
-    display: flex;
-    justify-content: space-between;
-    cursor: pointer;
-    color: #fbc02d;
-}
-
-.sugerencia-item:active {
-    background: #444;
-}
         .header-text h1 { margin: 0; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 1px; }
         .header-text p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
 
         #contenedor { display: flex; flex: 1; padding: 15px; gap: 15px; overflow: hidden; }
-        #ventas { flex: 2; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-y: auto; display: flex; flex-direction: column; }
-        #totales { flex: 1; background: #fff; padding: 25px; border-radius: 12px; border: 2px solid #1a3a5a; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        input#codigo { width: 100%; padding: 18px; font-size: 1.3rem; margin-bottom: 15px; border: 3px solid #1a3a5a; border-radius: 8px; box-sizing: border-box; background: #fffde7; outline: none; }
+        /* Lado Izquierdo: Ventas y Búsqueda */
+        #ventas { flex: 2; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-y: auto; display: flex; flex-direction: column; }
+        
+        input#codigo { width: 100%; padding: 18px; font-size: 1.3rem; margin-bottom: 5px; border: 3px solid #1a3a5a; border-radius: 8px; box-sizing: border-box; background: #fffde7; outline: none; }
+        
+        /* Sugerencias de búsqueda manual */
+        .sugerencias-container {
+            background: #252525;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .sugerencia-item {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+            color: #fbc02d;
+        }
+        .sugerencia-item:active { background: #444; }
+
         .producto-fila { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 12px 0; align-items: center; font-size: 1.1rem; }
+        
+        /* Lado Derecho: Totales */
+        #totales { flex: 1; background: #fff; padding: 25px; border-radius: 12px; border: 2px solid #1a3a5a; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow-y: auto; }
         
         .total-nro { font-size: 3.8rem; color: #1a3a5a; font-weight: bold; text-align: center; margin: 15px 0; }
         
-        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.4rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.3s; }
+        .btn-finalizar { background: #28a745; color: white; border: none; padding: 20px; font-size: 1.4rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.3s; margin-top: 10px; }
         .btn-finalizar:hover { background: #218838; }
         
         .btn-fiado { background: #1a3a5a; color: white; border: none; padding: 15px; font-size: 1.1rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 10px; }
-        
         .btn-eliminar { background: #ff4d4d; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; }
-        
         .caja-vuelto { background: #fff9c4; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px solid #fbc02d; }
         
-        select { padding: 12px; font-size: 1.1rem; border-radius: 8px; border: 1px solid #ccc; width: 100%; }
+        select { padding: 12px; font-size: 1.1rem; border-radius: 8px; border: 1px solid #ccc; width: 100%; background: white; }
+        
+        /* Responsivo básico */
+        @media (max-width: 768px) {
+            #contenedor { flex-direction: column; overflow-y: auto; }
+            #ventas, #totales { flex: none; height: auto; }
+        }
     </style>
 </head>
 <body>
@@ -82,14 +90,20 @@
 </header>
 
 <div id="contenedor">
+    <!-- SECCIÓN IZQUIERDA: CARGA DE PRODUCTOS -->
     <div id="ventas">
-        <input type="text" id="codigo" placeholder="Gatille aquí para escanear..." autofocus>
+        <!-- El único input para Pistolita o Nombre -->
+        <input type="text" id="codigo" placeholder="Escaneá o escribí nombre..." autofocus autocomplete="off">
+        
+        <!-- Aquí aparecen los resultados de la búsqueda manual -->
+        <div id="lista-sugerencias" class="sugerencias-container"></div>
         
         <div id="lista-productos">
-            <p style="color: gray; text-align: center; margin-top: 40px; font-style: italic;">Esperando escaneo de producto...</p>
+            <p style="color: gray; text-align: center; margin-top: 40px; font-style: italic;">Esperando productos...</p>
         </div>
     </div>
 
+    <!-- SECCIÓN DERECHA: COBRO Y TOTALES -->
     <div id="totales">
         <div>
             <h2 style="text-align: center; margin: 0; font-size: 1.1rem; color: #555;">TOTAL A COBRAR</h2>
@@ -111,16 +125,16 @@
                     <strong>Vuelto: <span id="vuelto-display" style="color: #2e7d32;">$0,00</span></strong>
                 </p>
             </div>
-            <input type="text" id="codigo" placeholder="Escaneá o escribí nombre..." autofocus>
-<!-- Agregá esta línea justo abajo -->
-<div id="lista-sugerencias" class="sugerencias-container"></div>
+
             <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
-            <button onclick="cancelarCarrito()" style="background: #e74c3c; color: white; border: none; padding: 10px; font-size: 1rem; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; margin-top: 10px;">
-            🚫 CANCELAR COMPRA ACTUAL
-             </button>
+            
+            <button onclick="cancelarCarrito()" style="background: #e74c3c; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 10px;">
+                🚫 CANCELAR COMPRA
+            </button>
+            
             <button class="btn-fiado" onclick="enviarAFiado()">📝 ANOTAR EN FIADOS</button>
             
-            <button onclick="window.location.href='admin.html'" style="background: none; border: none; color: #1a3a5a; text-decoration: underline; cursor: pointer; margin-top: 8px; font-size: 0.9rem;">⚙️ Panel Administración</button>
+            <button onclick="window.location.href='admin.html'" style="background: none; border: none; color: #1a3a5a; text-decoration: underline; cursor: pointer; margin-top: 15px; font-size: 0.9rem; width: 100%;">⚙️ Panel Administración</button>
         </div>
     </div>
 </div>
