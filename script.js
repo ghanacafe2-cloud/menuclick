@@ -17,20 +17,33 @@ function cargarInventario() {
     }
 }
 
-// 2. ESCUCHA DE LA PISTOLITA
+// 2. ESCUCHA DE LA PISTOLITA Y BÚSQUEDA MANUAL
 const inputCodigo = document.getElementById('codigo');
 if (inputCodigo) {
+    inputCodigo.addEventListener('input', (e) => {
+        const valor = inputCodigo.value.trim().toUpperCase();
+        
+        // Si el código es largo (pistolita), intenta procesar directo
+        const exacto = productosDB.find(p => p.id === valor);
+        if (exacto && valor.length >= 8) {
+            procesarEscaneo(valor);
+            inputCodigo.value = '';
+            document.getElementById('lista-sugerencias').innerHTML = ''; // Limpia sugerencias
+        } else {
+            // Si estás escribiendo letras, muestra sugerencias por nombre
+            mostrarSugerencias(valor);
+        }
+    });
+
+    // Por si le das Enter manualmente
     inputCodigo.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            const codigoLeido = inputCodigo.value.trim().toUpperCase();
-            if (codigoLeido !== "") {
-                procesarEscaneo(codigoLeido);
-            }
-            inputCodigo.value = ''; 
+            const valor = inputCodigo.value.trim().toUpperCase();
+            procesarEscaneo(valor);
+            inputCodigo.value = '';
         }
     });
 }
-
 // 3. LÓGICA DE ESCANEO (Con bloqueo de Stock)
 function procesarEscaneo(codigo) {
     const producto = productosDB.find(p => p.id === codigo);
@@ -217,4 +230,26 @@ function anularUltimaVenta() {
         alert("Venta eliminada del historial de hoy.");
         renderizarCarrito();
     }
+}
+// NUEVA: Función para buscar por nombre y mostrar botones
+function mostrarSugerencias(busqueda) {
+    const contenedor = document.getElementById('lista-sugerencias');
+    if (!contenedor) return;
+
+    if (busqueda.length < 2) {
+        contenedor.innerHTML = '';
+        return;
+    }
+
+    const filtrados = productosDB.filter(p => 
+        p.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+        p.id.toLowerCase().includes(busqueda.toLowerCase())
+    ).slice(0, 5); // Mostramos solo los primeros 5 para que no explote la pantalla
+
+    contenedor.innerHTML = filtrados.map(p => `
+        <div class="sugerencia-item" onclick="procesarEscaneo('${p.id}')">
+            <span>${p.nombre}</span>
+            <b>$${p.precio}</b>
+        </div>
+    `).join('');
 }
