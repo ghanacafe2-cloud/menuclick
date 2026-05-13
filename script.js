@@ -234,6 +234,7 @@ function anularUltimaVenta() {
 // NUEVA: Función para buscar por nombre y mostrar botones
 function mostrarSugerencias(busqueda) {
     const contenedor = document.getElementById('lista-sugerencias');
+    const input = document.getElementById('codigo'); // Agregamos referencia al input
     if (!contenedor) return;
 
     if (busqueda.length < 2) {
@@ -244,10 +245,10 @@ function mostrarSugerencias(busqueda) {
     const filtrados = productosDB.filter(p => 
         p.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
         p.id.toLowerCase().includes(busqueda.toLowerCase())
-    ).slice(0, 5); // Mostramos solo los primeros 5 para que no explote la pantalla
+    ).slice(0, 5);
 
     contenedor.innerHTML = filtrados.map(p => `
-        <div class="sugerencia-item" onclick="procesarEscaneo('${p.id}')">
+        <div class="sugerencia-item" onclick="procesarEscaneo('${p.id}'); document.getElementById('codigo').value=''; document.getElementById('lista-sugerencias').innerHTML=''">
             <span>${p.nombre}</span>
             <b>$${p.precio}</b>
         </div>
