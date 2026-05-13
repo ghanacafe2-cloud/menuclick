@@ -26,6 +26,25 @@
             padding: 3px;
             object-fit: contain;
         }
+        .sugerencias-container {
+    background: #252525;
+    border-radius: 0 0 8px 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.sugerencia-item {
+    padding: 12px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    color: #fbc02d;
+}
+
+.sugerencia-item:active {
+    background: #444;
+}
         .header-text h1 { margin: 0; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 1px; }
         .header-text p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
 
@@ -92,7 +111,9 @@
                     <strong>Vuelto: <span id="vuelto-display" style="color: #2e7d32;">$0,00</span></strong>
                 </p>
             </div>
-
+            <input type="text" id="codigo" placeholder="Escaneá o escribí nombre..." autofocus>
+<!-- Agregá esta línea justo abajo -->
+<div id="lista-sugerencias" class="sugerencias-container"></div>
             <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
             <button onclick="cancelarCarrito()" style="background: #e74c3c; color: white; border: none; padding: 10px; font-size: 1rem; cursor: pointer; border-radius: 5px; font-weight: bold; width: 100%; margin-top: 10px;">
             🚫 CANCELAR COMPRA ACTUAL
