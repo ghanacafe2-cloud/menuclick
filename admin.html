@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://unpkg.com/html5-qrcode"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Admin - Kiosco El Cholo</title>
@@ -33,6 +35,18 @@
         .status-low { color: #ff5252; font-weight: bold; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px; /* Un poquito más grande para el celu */
+}
+
+/* Contenedor para que la tabla no rompa el diseño */
+.contenedor-tabla {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
     </style>
 </head>
 <body>
@@ -77,7 +91,14 @@
         <h4 style="margin: 0; color: #ff5252;">⚠️ FALTA MERCADERÍA:</h4>
         <ul id="lista-reposicion" style="margin: 10px 0 0 0; color: white;"></ul>
     </div>
-
+<div style="display: flex; gap: 5px;">
+    <input type="text" id="admin-codigo" placeholder="Código (o escanea ->)">
+    <button type="button" onclick="toggleEscaner()" style="background: #ff9800; border: none; border-radius: 4px; padding: 10px; cursor: pointer;">📷</button>
+</div>
+    <div style="display: flex; gap: 5px;">
+    <input type="text" id="admin-codigo" placeholder="Código (o escanea ->)">
+    <button type="button" onclick="toggleEscaner()" style="background: #ff9800; border: none; border-radius: 4px; padding: 10px; cursor: pointer;">📷</button>
+</div>
     <h3>🆕 CARGAR / EDITAR PRODUCTO</h3>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <input type="text" id="admin-codigo" placeholder="Código / Escaneo" autofocus>
