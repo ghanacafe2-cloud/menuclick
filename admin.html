@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://unpkg.com/html5-qrcode"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Admin - Kiosco El Cholo</title>
+    <!-- Librería para el escáner -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #121212; color: #e0e0e0; padding: 20px; }
         .container { max-width: 1000px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 12px; border: 1px solid #333; }
@@ -20,8 +20,9 @@
         /* Alertas de Stock */
         #alerta-reposicion { background: #4a0e0e; border: 2px solid #e74c3c; padding: 15px; border-radius: 8px; margin: 20px 0; display: none; }
         
-        /* Tablas */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #252525; border-radius: 8px; overflow: hidden; }
+        /* Tablas Responsivas */
+        .contenedor-tabla { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; background: #252525; border-radius: 8px; overflow: hidden; font-size: 14px; }
         th { background: #333; color: #fbc02d; padding: 12px; text-align: left; }
         td { padding: 12px; border-bottom: 1px solid #333; }
         
@@ -34,19 +35,9 @@
         
         .status-low { color: #ff5252; font-weight: bold; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px; /* Un poquito más grande para el celu */
-}
 
-/* Contenedor para que la tabla no rompa el diseño */
-.contenedor-tabla {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
+        /* Estilo para el visor de cámara */
+        #reader { width: 100%; max-width: 400px; margin: 10px auto; border-radius: 8px; overflow: hidden; display: none; border: 2px solid #ff9800; }
     </style>
 </head>
 <body>
@@ -54,7 +45,7 @@
 <div class="container">
     <button class="btn-nav" onclick="window.location.href='index.html'">⬅ VOLVER AL MOSTRADOR</button>
 
-    <h3>📊 CAJA DEL DÍA (INGRESOS - GASTOS)</h3>
+    <h3>📊 CAJA DEL DÍA</h3>
     <div class="grid-reporte">
         <div class="caja"><p>💵 Efectivo Neto</p><b id="total-efectivo">$0,00</b></div>
         <div class="caja"><p>💳 Tarjeta</p><b id="total-debito">$0,00</b></div>
@@ -65,88 +56,85 @@
     <div style="display: flex; gap: 10px; margin-top: 10px;">
         <button class="btn-danger" style="flex: 1;" onclick="borrarVentas()">🏁 CERRAR CAJA Y GUARDAR DÍA</button>
     </div>
-    <button class="btn-danger" style="background: #95a5a6; margin-bottom: 10px;" onclick="anularUltimaVentaAdmin()">↩️ ANULAR ÚLTIMA CARGA</button>
-   <h3>💸 REGISTRAR SALIDA DE PLATA (GASTO)</h3>
-<div style="display: flex; gap: 10px; background: #252525; padding: 15px; border-radius: 8px;">
-    <input type="text" id="gasto-detalle" placeholder="Ej: Pago a Panadero" style="margin-bottom:0">
-    <input type="number" id="gasto-monto" placeholder="Monto $" style="margin-bottom:0">
-    <button class="btn-gasto" onclick="registrarGasto()">➖ RESTAR</button>
-</div>
+    <button class="btn-danger" style="background: #95a5a6; margin-top: 10px; width: 100%;" onclick="anularUltimaVentaAdmin()">↩️ ANULAR ÚLTIMA CARGA</button>
 
-<h4 style="margin-top: 20px; color: #e67e22;">📝 REGISTRO DE PAGOS REALIZADOS</h4>
-<table id="tabla-gastos-detalle">
-    <thead>
-        <tr>
-            <th>Fecha/Hora</th>
-            <th>Detalle</th>
-            <th>Monto</th>
-            <th>Acción</th>
-        </tr>
-    </thead>
-    <tbody id="cuerpo-gastos"></tbody>
-</table>
-<!-- Buscá este botón y dejalo así -->
-<button class="btn-danger" style="background: #444; margin-top: 5px; padding: 5px 10px; font-size: 0.8rem;" onclick="limpiarSoloGastos()">🗑️ LIMPIAR LISTA DE PAGOS</button>
+    <h3>💸 REGISTRAR GASTO</h3>
+    <div style="display: flex; gap: 10px; background: #252525; padding: 15px; border-radius: 8px;">
+        <input type="text" id="gasto-detalle" placeholder="Ej: Panadero" style="margin-bottom:0">
+        <input type="number" id="gasto-monto" placeholder="$" style="margin-bottom:0">
+        <button class="btn-gasto" onclick="registrarGasto()">➖</button>
+    </div>
+
+    <div class="contenedor-tabla">
+        <table id="tabla-gastos-detalle">
+            <thead>
+                <tr><th>Hora</th><th>Detalle</th><th>Monto</th><th>Acción</th></tr>
+            </thead>
+            <tbody id="cuerpo-gastos"></tbody>
+        </table>
+    </div>
+    <button class="btn-danger" style="background: #444; margin-top: 5px; width: 100%;" onclick="limpiarSoloGastos()">🗑️ LIMPIAR LISTA DE PAGOS</button>
+
     <div id="alerta-reposicion">
         <h4 style="margin: 0; color: #ff5252;">⚠️ FALTA MERCADERÍA:</h4>
         <ul id="lista-reposicion" style="margin: 10px 0 0 0; color: white;"></ul>
     </div>
-<div style="display: flex; gap: 5px;">
-    <input type="text" id="admin-codigo" placeholder="Código (o escanea ->)">
-    <button type="button" onclick="toggleEscaner()" style="background: #ff9800; border: none; border-radius: 4px; padding: 10px; cursor: pointer;">📷</button>
-</div>
-    <div style="display: flex; gap: 5px;">
-    <input type="text" id="admin-codigo" placeholder="Código (o escanea ->)">
-    <button type="button" onclick="toggleEscaner()" style="background: #ff9800; border: none; border-radius: 4px; padding: 10px; cursor: pointer;">📷</button>
-</div>
+
     <h3>🆕 CARGAR / EDITAR PRODUCTO</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <input type="text" id="admin-codigo" placeholder="Código / Escaneo" autofocus>
-        <input type="number" id="admin-stock" placeholder="Stock">
-        <input type="text" id="admin-nombre" placeholder="Nombre">
-        <input type="number" id="admin-precio" placeholder="Precio $">
+    
+    <!-- VISOR DE CÁMARA -->
+    <div id="reader"></div>
+
+    <div style="display: grid; grid-template-columns: 1fr auto; gap: 5px; margin-bottom: 10px;">
+        <input type="text" id="admin-codigo" placeholder="Código / Escaneo" style="margin-bottom:0">
+        <button type="button" onclick="toggleEscaner()" style="background: #ff9800; border: none; border-radius: 6px; padding: 0 15px; cursor: pointer; font-size: 1.5rem;">📷</button>
     </div>
-    <select id="admin-tipo">
-        <option value="fijo">Precio Fijo</option>
-        <option value="variable">Precio Variable (Peso)</option>
-    </select>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <input type="text" id="admin-nombre" placeholder="Nombre">
+        <input type="number" id="admin-stock" placeholder="Stock">
+        <input type="number" id="admin-precio" placeholder="Precio $">
+        <select id="admin-tipo">
+            <option value="fijo">Precio Fijo</option>
+            <option value="variable">Precio Variable (Peso)</option>
+        </select>
+    </div>
     <button id="btn-guardar" class="btn-save" onclick="guardarProducto()">💾 GUARDAR EN INVENTARIO</button>
 
     <h3>📋 INVENTARIO</h3>
-    <table id="tabla-productos">
-        <thead>
-            <tr><th>Código</th><th>Producto</th><th>Precio</th><th>Stock</th><th>Acción</th></tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <div class="contenedor-tabla">
+        <table id="tabla-productos">
+            <thead>
+                <tr><th>Código</th><th>Producto</th><th>Precio</th><th>Stock</th><th>Acción</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
     <h3>👥 LIBRETA DE FIADOS</h3>
     <div style="display: flex; gap: 10px;">
         <input type="text" id="fiado-cliente" placeholder="Nombre">
         <input type="number" id="fiado-monto" placeholder="Monto">
-        <button class="btn-save" style="width: auto;" onclick="agregarFiado()">➕ ANOTAR</button>
+        <button class="btn-save" style="width: auto;" onclick="agregarFiado()">➕</button>
     </div>
-    <table id="tabla-fiados">
-        <thead>
-            <tr><th>Cliente</th><th>Deuda</th><th>Acción</th></tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <div class="contenedor-tabla">
+        <table id="tabla-fiados">
+            <thead>
+                <tr><th>Cliente</th><th>Deuda</th><th>Acción</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
-   <!-- Buscá esta parte y dejala así -->
-<h3>📅 HISTORIAL DE CIERRES PASADOS</h3>
-<table id="tabla-historial">
-    <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Efectivo</th>
-            <th>Tarj/QR</th>
-            <th>Total</th>
-            <th>Acción</th> <!-- Agregamos esta columna -->
-        </tr>
-    </thead>
-    <tbody id="cuerpo-historial"></tbody>
-</table>
+    <h3>📅 HISTORIAL DE CIERRES</h3>
+    <div class="contenedor-tabla">
+        <table id="tabla-historial">
+            <thead>
+                <tr><th>Fecha</th><th>Efectivo</th><th>Otros</th><th>Total</th><th>Acción</th></tr>
+            </thead>
+            <tbody id="cuerpo-historial"></tbody>
+        </table>
+    </div>
 
     <div style="margin-top: 40px; font-size: 12px; opacity: 0.5;">
         Token Nube: <input type="password" id="gh-token" onchange="guardarToken()" style="width: 100px; padding: 2px;">
