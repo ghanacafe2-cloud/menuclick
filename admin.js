@@ -273,7 +273,56 @@ function anularUltimaVentaAdmin() {
         alert("Movimiento anulado.");
     }
 }
+// --- FUNCIÓN DE ESCÁNER CON CÁMARA ---
+let html5QrCode;
 
+function toggleEscaner() {
+    const readerDiv = document.getElementById('reader');
+    
+    // Si ya está prendido, lo apagamos
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            readerDiv.style.display = 'none';
+            console.log("Escáner detenido");
+        });
+        return;
+    }
+
+    // Si no está creado, lo creamos
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+
+    readerDiv.style.display = 'block';
+
+    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+    html5QrCode.start(
+        { facingMode: "environment" }, // Usa la cámara de atrás
+        config,
+        (decodedText) => {
+            // Cuando detecta un código:
+            document.getElementById('admin-codigo').value = decodedText.toUpperCase();
+            beep(); // Sonidito de éxito
+            html5QrCode.stop().then(() => {
+                readerDiv.style.display = 'none';
+                document.getElementById('admin-nombre').focus(); // Salta al nombre
+            });
+        },
+        (errorMessage) => { /* Silencio para no llenar la consola de errores */ }
+    ).catch(err => alert("Error al abrir cámara: " + err));
+}
+
+// Un ruidito para saber que escaneó
+function beep() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+    oscillator.connect(audioCtx.destination);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.1);
+}
 // Inicialización
 validarToken();
 actualizarTodo();
