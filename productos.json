@@ -1,9 +1,52 @@
 [
   {
-    "id": "7798311610317",
-    "nombre": "Tuallita",
-    "precio": 8000,
+    "id": "7790387800142",
+    "nombre": "Te Taragui",
+    "precio": 4000,
+    "tipo": "fijo"
+  },
+  {
+    "id": "7791661000333",
+    "nombre": "Bidón de agua Nestlé",
+    "precio": 2500,
+    "tipo": "fijo"
+  },
+  {
+    "id": "7798048720907",
+    "nombre": "Maíz Pisingallo",
+    "precio": 1200,
+    "tipo": "fijo"
+  },
+  {
+    "id": "7790387015324",
+    "nombre": "Yerba Mananita 500 gr",
+    "precio": 2500,
+    "tipo": "fijo"
+  },
+  {
+    "id": "PAN",
+    "nombre": "pan",
+    "precio": 5000,
+    "tipo": "variable"
+  },
+  {
+    "id": "865192070210108",
+    "nombre": "celular",
+    "precio": 400000,
     "tipo": "fijo",
-    "stock": 50
+    "stock": 10
+  },
+  {
+    "id": "8480017534606",
+    "nombre": "fritolin",
+    "precio": 3200,
+    "tipo": "fijo"
+  },
+  {
+    "id": "7798151693020",
+    "nombre": "leche",
+    "precio": 4200,
+    "tipo": "fijo",
+    "stock": 8
   }
 ]
