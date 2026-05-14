@@ -159,7 +159,16 @@ function finalizarVenta() {
     
     if(inputCodigo) inputCodigo.focus();
 }
-
+// --- DENTRO DE LA FUNCIÓN finalizarVenta ---
+    const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    ventasHistoricas.push({
+        total: totalVenta,
+        metodo: metodo,
+        fecha: new Date().toLocaleString(),
+        detalle: "Venta Mostrador",
+        productos: [...carrito] // <--- ESTA ES LA CLAVE: guarda los productos de la venta
+    });
+    localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
 // 7. FOCO INTELIGENTE Y FIADOS
 window.onclick = function(e) {
     const elementosLibres = ['BUTTON', 'INPUT', 'SELECT', 'OPTION', 'TEXTAREA'];
@@ -217,18 +226,29 @@ function anularUltimaVenta() {
 
     const ultimaVenta = ventas[ventas.length - 1];
     
-    if (confirm(`¿Anular la última venta de $${ultimaVenta.total.toLocaleString()}? \n(Esto devolverá el stock y restará el monto de la caja)`)) {
+    if (confirm(`¿Anular la última venta de $${ultimaVenta.total.toLocaleString()}?\nEsto devolverá los productos al stock.`)) {
         
-        // 1. Quitamos la venta del historial
-        ventas.pop();
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        // RECORREMOS LOS PRODUCTOS QUE SE HABÍAN VENDIDO
+        if (ultimaVenta.productos) {
+            ultimaVenta.productos.forEach(prodVendido => {
+                // Buscamos el producto en nuestra base de datos por nombre
+                const enDB = productosDB.find(p => p.nombre === prodVendido.nombre);
+                if (enDB) {
+                    enDB.stock += 1; // LE DEVOLVEMOS LA UNIDAD AL STOCK
+                }
+            });
+            // GUARDAMOS EL INVENTARIO ACTUALIZADO EN EL LOCALSTORAGE
+            localStorage.setItem('inventario', JSON.stringify(productosDB));
+        }
 
-        // 2. IMPORTANTE: Como no guardamos qué productos exactos se vendieron en el historial, 
-        // esta anulación resta la plata de la caja. 
-        // El stock lo tendrías que corregir a mano en el Admin si es un producto específico.
+        // QUITAMOS LA VENTA DEL HISTORIAL
+        ventas.pop(); 
+        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
         
-        alert("Venta eliminada del historial de hoy.");
-        renderizarCarrito();
+        alert("✅ Venta anulada: El dinero salió de caja y los productos volvieron al stock.");
+        
+        // ACTUALIZAMOS LA VISTA (por si tenés el admin abierto o algo similar)
+        if (typeof renderizarCarrito === 'function') renderizarCarrito();
     }
 }
 // NUEVA: Función para buscar por nombre y mostrar botones
