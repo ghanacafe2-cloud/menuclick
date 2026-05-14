@@ -8,7 +8,6 @@ function cargarInventario() {
     const datosLocales = localStorage.getItem('inventario');
     if (datosLocales) {
         productosDB = JSON.parse(datosLocales);
-        console.log("Inventario cargado.");
     } else {
         productosDB = [
             { id: "PAN", nombre: "Pan Francés (kg)", precio: 0, tipo: "variable", stock: 999 },
@@ -22,39 +21,37 @@ const inputCodigo = document.getElementById('codigo');
 if (inputCodigo) {
     inputCodigo.addEventListener('input', (e) => {
         const valor = inputCodigo.value.trim().toUpperCase();
-        
-        // Si el código es largo (pistolita), intenta procesar directo
         const exacto = productosDB.find(p => p.id === valor);
+        
         if (exacto && valor.length >= 8) {
             procesarEscaneo(valor);
             inputCodigo.value = '';
-            document.getElementById('lista-sugerencias').innerHTML = ''; // Limpia sugerencias
+            document.getElementById('lista-sugerencias').innerHTML = '';
         } else {
-            // Si estás escribiendo letras, muestra sugerencias por nombre
             mostrarSugerencias(valor);
         }
     });
 
-    // Por si le das Enter manualmente
     inputCodigo.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             const valor = inputCodigo.value.trim().toUpperCase();
-            procesarEscaneo(valor);
-            inputCodigo.value = '';
+            if(valor !== "") {
+                procesarEscaneo(valor);
+                inputCodigo.value = '';
+                document.getElementById('lista-sugerencias').innerHTML = '';
+            }
         }
     });
 }
-// 3. LÓGICA DE ESCANEO (Con bloqueo de Stock)
+
+// 3. LÓGICA DE ESCANEO
 function procesarEscaneo(codigo) {
     const producto = productosDB.find(p => p.id === codigo);
-
     if (producto) {
-        // --- BLOQUEO POR FALTA DE STOCK ---
         if (producto.stock <= 0) {
-            alert(`⚠️ ¡SIN STOCK! El producto "${producto.nombre}" no tiene unidades disponibles.`);
-            return; // Corta aquí, no deja agregar
+            alert(`⚠️ ¡SIN STOCK! El producto "${producto.nombre}" no tiene unidades.`);
+            return;
         }
-
         if (producto.tipo === "variable") {
             const precioManual = parseFloat(prompt(`Precio para ${producto.nombre}:`));
             if (!isNaN(precioManual) && precioManual > 0) {
@@ -64,7 +61,7 @@ function procesarEscaneo(codigo) {
             agregarAlCarrito(producto.nombre, producto.precio);
         }
     } else {
-        alert(`Código ${codigo} no encontrado. Cargalo en el Admin.`);
+        alert(`Código ${codigo} no encontrado.`);
     }
 }
 
@@ -77,7 +74,6 @@ function agregarAlCarrito(nombre, precio) {
 function renderizarCarrito() {
     const lista = document.getElementById('lista-productos');
     const displayTotal = document.getElementById('total-display');
-    
     if (!lista || !displayTotal) return;
 
     lista.innerHTML = ''; 
@@ -89,13 +85,13 @@ function renderizarCarrito() {
         fila.className = 'producto-fila';
         fila.innerHTML = `
             <span><strong>${item.nombre}</strong></span>
-            <span>$${item.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+            <span>$${item.precio.toLocaleString('es-AR')}</span>
             <button class="btn-eliminar" onclick="quitarItem(${index})">❌</button>
         `;
         lista.appendChild(fila);
     });
 
-    displayTotal.innerText = `$${totalVenta.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+    displayTotal.innerText = `$${totalVenta.toLocaleString('es-AR')}`;
     calcularVuelto(); 
 }
 
@@ -108,7 +104,6 @@ function quitarItem(index) {
 function calcularVuelto() {
     const pagaConInput = document.getElementById('paga-con');
     const vueltoDisplay = document.getElementById('vuelto-display');
-    
     if (!pagaConInput || !vueltoDisplay) return;
 
     const pagaCon = parseFloat(pagaConInput.value) || 0;
@@ -121,150 +116,103 @@ function calcularVuelto() {
         vueltoDisplay.innerText = "Falta dinero";
         vueltoDisplay.style.color = "red";
     } else {
-        vueltoDisplay.innerText = `$${vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+        vueltoDisplay.innerText = `$${vuelto.toLocaleString('es-AR')}`;
         vueltoDisplay.style.color = "green";
     }
 }
 
-// 6. FINALIZAR VENTA
+// 6. FINALIZAR VENTA (CORREGIDA)
 function finalizarVenta() {
     if (carrito.length === 0) return alert("El carrito está vacío");
 
     const metodo = document.getElementById('metodo-pago').value;
 
+    // Descontar Stock
     carrito.forEach(itemVendido => {
-        const productoEnDB = productosDB.find(p => p.nombre === itemVendido.nombre);
-        if (productoEnDB && productoEnDB.stock > 0) {
-            productoEnDB.stock -= 1;
+        const enDB = productosDB.find(p => p.nombre === itemVendido.nombre);
+        if (enDB && enDB.stock > 0) {
+            enDB.stock -= 1;
         }
     });
     
+    // Guardar Inventario actualizado
     localStorage.setItem('inventario', JSON.stringify(productosDB));
 
+    // Guardar Venta en Historial con el detalle de productos para poder anular luego
     const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     ventasHistoricas.push({
         total: totalVenta,
         metodo: metodo,
         fecha: new Date().toLocaleString(),
-        detalle: "Venta Mostrador"
+        productos: [...carrito] // <--- Importante para el stock
     });
     localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
 
-    alert(`✅ VENTA GUARDADA\nTotal: $${totalVenta.toLocaleString('es-AR')}`);
+    alert(`✅ VENTA GUARDADA`);
 
     carrito = [];
-    const inputPaga = document.getElementById('paga-con');
-    if (inputPaga) inputPaga.value = '';
+    document.getElementById('paga-con').value = '';
     renderizarCarrito();
-    
-    if(inputCodigo) inputCodigo.focus();
-}
-// --- DENTRO DE LA FUNCIÓN finalizarVenta ---
-    const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    ventasHistoricas.push({
-        total: totalVenta,
-        metodo: metodo,
-        fecha: new Date().toLocaleString(),
-        detalle: "Venta Mostrador",
-        productos: [...carrito] // <--- ESTA ES LA CLAVE: guarda los productos de la venta
-    });
-    localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
-// 7. FOCO INTELIGENTE Y FIADOS
-window.onclick = function(e) {
-    const elementosLibres = ['BUTTON', 'INPUT', 'SELECT', 'OPTION', 'TEXTAREA'];
-    if (!elementosLibres.includes(e.target.tagName)) {
-        if (inputCodigo) inputCodigo.focus();
-    }
-};
-
-function enviarAFiado() {
-    if (carrito.length === 0) return alert("El carrito está vacío");
-
-    const cliente = prompt("¿A quién le anotamos este fiado?");
-    if (!cliente) return;
-
-    let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
-    const index = fiados.findIndex(f => f.cliente.toUpperCase() === cliente.toUpperCase());
-    
-    if (index > -1) {
-        fiados[index].monto += totalVenta;
-    } else {
-        fiados.push({ cliente: cliente, monto: totalVenta });
-    }
-
-    localStorage.setItem('fiados', JSON.stringify(fiados));
-    
-    carrito.forEach(itemVendido => {
-        const productoEnDB = productosDB.find(p => p.nombre === itemVendido.nombre);
-        if (productoEnDB && productoEnDB.stock > 0) productoEnDB.stock -= 1;
-    });
-    localStorage.setItem('inventario', JSON.stringify(productosDB));
-
-    alert(`📝 Anotado en la cuenta de ${cliente}\nTotal nuevo fiado: $${totalVenta.toLocaleString('es-AR')}`);
-
-    carrito = [];
-    renderizarCarrito();
+    inputCodigo.focus();
 }
 
-cargarInventario();
-// --- FUNCIÓN PARA VACIAR EL CARRITO ACTUAL ---
-function cancelarCarrito() {
-    if (carrito.length === 0) return;
-    if (confirm("¿Estás seguro de cancelar esta compra? Se borrará todo el carrito.")) {
-        carrito = [];
-        const inputPaga = document.getElementById('paga-con');
-        if (inputPaga) inputPaga.value = '';
-        renderizarCarrito();
-        alert("Compra cancelada.");
-    }
-}
-
-// --- FUNCIÓN PARA ANULAR LA ÚLTIMA VENTA (Vuelve el stock y resta la plata) ---
+// 7. ANULAR VENTA (CORREGIDA)
 function anularUltimaVenta() {
     let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     if (ventas.length === 0) return alert("No hay ventas para anular.");
 
-    const ultimaVenta = ventas[ventas.length - 1];
+    const ultima = ventas[ventas.length - 1];
     
-    if (confirm(`¿Anular la última venta de $${ultimaVenta.total.toLocaleString()}?\nEsto devolverá los productos al stock.`)) {
-        
-        // RECORREMOS LOS PRODUCTOS QUE SE HABÍAN VENDIDO
-        if (ultimaVenta.productos) {
-            ultimaVenta.productos.forEach(prodVendido => {
-                // Buscamos el producto en nuestra base de datos por nombre
-                const enDB = productosDB.find(p => p.nombre === prodVendido.nombre);
-                if (enDB) {
-                    enDB.stock += 1; // LE DEVOLVEMOS LA UNIDAD AL STOCK
-                }
+    if (confirm(`¿Anular venta de $${ultima.total}? Se devolverá el stock.`)) {
+        // Devolver stock
+        if (ultima.productos) {
+            ultima.productos.forEach(prod => {
+                const enDB = productosDB.find(p => p.nombre === prod.nombre);
+                if (enDB) enDB.stock += 1;
             });
-            // GUARDAMOS EL INVENTARIO ACTUALIZADO EN EL LOCALSTORAGE
             localStorage.setItem('inventario', JSON.stringify(productosDB));
         }
 
-        // QUITAMOS LA VENTA DEL HISTORIAL
         ventas.pop(); 
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
-        
-        alert("✅ Venta anulada: El dinero salió de caja y los productos volvieron al stock.");
-        
-        // ACTUALIZAMOS LA VISTA (por si tenés el admin abierto o algo similar)
-        if (typeof renderizarCarrito === 'function') renderizarCarrito();
+        alert("Venta anulada correctamente.");
+        renderizarCarrito();
     }
 }
-// NUEVA: Función para buscar por nombre y mostrar botones
+
+// 8. FIADOS Y EXTRAS
+function enviarAFiado() {
+    if (carrito.length === 0) return alert("El carrito está vacío");
+    const cliente = prompt("¿Nombre del cliente?");
+    if (!cliente) return;
+
+    let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
+    const idx = fiados.findIndex(f => f.cliente.toUpperCase() === cliente.toUpperCase());
+    
+    if (idx > -1) fiados[idx].monto += totalVenta;
+    else fiados.push({ cliente: cliente, monto: totalVenta });
+
+    localStorage.setItem('fiados', JSON.stringify(fiados));
+    
+    // Descontar stock también en fiados
+    carrito.forEach(item => {
+        const enDB = productosDB.find(p => p.nombre === item.nombre);
+        if (enDB) enDB.stock -= 1;
+    });
+    localStorage.setItem('inventario', JSON.stringify(productosDB));
+
+    alert("Anotado en fiados.");
+    carrito = [];
+    renderizarCarrito();
+}
+
 function mostrarSugerencias(busqueda) {
     const contenedor = document.getElementById('lista-sugerencias');
-    const input = document.getElementById('codigo'); // Agregamos referencia al input
     if (!contenedor) return;
-
-    if (busqueda.length < 2) {
-        contenedor.innerHTML = '';
-        return;
-    }
+    if (busqueda.length < 2) { contenedor.innerHTML = ''; return; }
 
     const filtrados = productosDB.filter(p => 
-        p.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-        p.id.toLowerCase().includes(busqueda.toLowerCase())
+        p.nombre.toLowerCase().includes(busqueda.toLowerCase())
     ).slice(0, 5);
 
     contenedor.innerHTML = filtrados.map(p => `
@@ -274,3 +222,19 @@ function mostrarSugerencias(busqueda) {
         </div>
     `).join('');
 }
+
+function cancelarCarrito() {
+    if (carrito.length > 0 && confirm("¿Vaciar carrito?")) {
+        carrito = [];
+        renderizarCarrito();
+    }
+}
+
+// Foco automático
+window.onclick = function(e) {
+    if (!['BUTTON', 'INPUT', 'SELECT'].includes(e.target.tagName)) {
+        inputCodigo.focus();
+    }
+};
+
+cargarInventario();
