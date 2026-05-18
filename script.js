@@ -46,7 +46,10 @@ if (inputCodigo) {
 
 // 3. LÓGICA DE ESCANEO
 function procesarEscaneo(codigo) {
-    const producto = productosDB.find(p => p.id === codigo);
+   const producto = productosDB.find(p =>
+    p.id.toUpperCase() === codigo.toUpperCase() ||
+    p.nombre.toUpperCase() === codigo.toUpperCase()
+);
     if (producto) {
         if (producto.stock <= 0) {
             alert(`⚠️ ¡SIN STOCK! El producto "${producto.nombre}" no tiene unidades.`);
@@ -76,13 +79,15 @@ function procesarEscaneo(codigo) {
 // 4. MANEJO DEL CARRITO
 function agregarAlCarrito(id, nombre, precio) {
 
-    // Buscar si ya existe
+    // Buscar si ya existe el producto
     const existente = carrito.find(item => item.id === id);
 
     if (existente) {
 
         existente.cantidad += 1;
-        existente.subtotal = existente.cantidad * existente.precio;
+
+        existente.subtotal =
+            existente.cantidad * existente.precio;
 
     } else {
 
@@ -99,40 +104,63 @@ function agregarAlCarrito(id, nombre, precio) {
     renderizarCarrito();
 }
 
-carrito.forEach((item, index) => {
+function renderizarCarrito() {
 
-    totalVenta += item.subtotal;
+    const lista = document.getElementById('lista-productos');
+    const displayTotal = document.getElementById('total-display');
 
-    const fila = document.createElement('div');
+    if (!lista || !displayTotal) return;
 
-    fila.className = 'producto-fila';
+    lista.innerHTML = '';
 
-    fila.innerHTML = `
-        <span style="flex:2">
-            <strong>${item.nombre}</strong>
-            <br>
-            <small>
-                ${item.cantidad} x $${item.precio.toLocaleString('es-AR')}
-            </small>
-        </span>
+    totalVenta = 0;
 
-        <span style="font-weight:bold;">
-            $${item.subtotal.toLocaleString('es-AR')}
-        </span>
+    // Si no hay productos
+    if (carrito.length === 0) {
 
-        <button class="btn-eliminar"
-            onclick="quitarItem(${index})">
-            ❌
-        </button>
-    `;
+        lista.innerHTML = `
+            <p style="color: gray; text-align: center; margin-top: 40px; font-style: italic;">
+                Esperando productos...
+            </p>
+        `;
 
-    lista.appendChild(fila);
+    }
 
-});
+    carrito.forEach((item, index) => {
+
+        totalVenta += item.subtotal;
+
+        const fila = document.createElement('div');
+
+        fila.className = 'producto-fila';
+
+        fila.innerHTML = `
+            <span style="flex:2">
+                <strong>${item.nombre}</strong>
+                <br>
+                <small>
+                    ${item.cantidad} x $${item.precio.toLocaleString('es-AR')}
+                </small>
+            </span>
+
+            <span style="font-weight:bold;">
+                $${item.subtotal.toLocaleString('es-AR')}
+            </span>
+
+            <button class="btn-eliminar"
+                onclick="quitarItem(${index})">
+                ❌
+            </button>
+        `;
+
+        lista.appendChild(fila);
+
     });
 
-    displayTotal.innerText = `$${totalVenta.toLocaleString('es-AR')}`;
-    calcularVuelto(); 
+    displayTotal.innerText =
+        `$${totalVenta.toLocaleString('es-AR')}`;
+
+    calcularVuelto();
 }
 
 function quitarItem(index) {
@@ -153,8 +181,6 @@ function quitarItem(index) {
 
     renderizarCarrito();
 }
-
-// 5. CALCULADORA DE VUELTO
 function calcularVuelto() {
     const pagaConInput = document.getElementById('paga-con');
     const vueltoDisplay = document.getElementById('vuelto-display');
