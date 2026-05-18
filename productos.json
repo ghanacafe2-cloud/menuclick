@@ -32,9 +32,8 @@
   {
     "id": "865192070210108",
     "nombre": "celular",
-    "precio": 400000,
-    "tipo": "fijo",
-    "stock": 10
+    "precio": 354532,
+    "tipo": "fijo"
   },
   {
     "id": "8480017534606",
@@ -47,6 +46,13 @@
     "nombre": "leche",
     "precio": 4200,
     "tipo": "fijo",
-    "stock": 8
+    "stock": 7
+  },
+  {
+    "id": "7790040147720",
+    "nombre": "sutido",
+    "precio": 5000,
+    "tipo": "fijo",
+    "stock": 10
   }
 ]
