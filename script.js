@@ -55,10 +55,18 @@ function procesarEscaneo(codigo) {
         if (producto.tipo === "variable") {
             const precioManual = parseFloat(prompt(`Precio para ${producto.nombre}:`));
             if (!isNaN(precioManual) && precioManual > 0) {
-                agregarAlCarrito(producto.nombre, precioManual);
+              agregarAlCarrito(
+    producto.id,
+    producto.nombre,
+    precioManual
+);
             }
         } else {
-            agregarAlCarrito(producto.nombre, producto.precio);
+         agregarAlCarrito(
+    producto.id,
+    producto.nombre,
+    producto.precio
+);
         }
     } else {
         alert(`Código ${codigo} no encontrado.`);
@@ -66,29 +74,61 @@ function procesarEscaneo(codigo) {
 }
 
 // 4. MANEJO DEL CARRITO
-function agregarAlCarrito(nombre, precio) {
-    carrito.push({ nombre, precio });
+function agregarAlCarrito(id, nombre, precio) {
+
+    // Buscar si ya existe
+    const existente = carrito.find(item => item.id === id);
+
+    if (existente) {
+
+        existente.cantidad += 1;
+        existente.subtotal = existente.cantidad * existente.precio;
+
+    } else {
+
+        carrito.push({
+            id: id,
+            nombre: nombre,
+            precio: precio,
+            cantidad: 1,
+            subtotal: precio
+        });
+
+    }
+
     renderizarCarrito();
 }
 
-function renderizarCarrito() {
-    const lista = document.getElementById('lista-productos');
-    const displayTotal = document.getElementById('total-display');
-    if (!lista || !displayTotal) return;
+carrito.forEach((item, index) => {
 
-    lista.innerHTML = ''; 
-    totalVenta = 0;
+    totalVenta += item.subtotal;
 
-    carrito.forEach((item, index) => {
-        totalVenta += item.precio;
-        const fila = document.createElement('div');
-        fila.className = 'producto-fila';
-        fila.innerHTML = `
-            <span><strong>${item.nombre}</strong></span>
-            <span>$${item.precio.toLocaleString('es-AR')}</span>
-            <button class="btn-eliminar" onclick="quitarItem(${index})">❌</button>
-        `;
-        lista.appendChild(fila);
+    const fila = document.createElement('div');
+
+    fila.className = 'producto-fila';
+
+    fila.innerHTML = `
+        <span style="flex:2">
+            <strong>${item.nombre}</strong>
+            <br>
+            <small>
+                ${item.cantidad} x $${item.precio.toLocaleString('es-AR')}
+            </small>
+        </span>
+
+        <span style="font-weight:bold;">
+            $${item.subtotal.toLocaleString('es-AR')}
+        </span>
+
+        <button class="btn-eliminar"
+            onclick="quitarItem(${index})">
+            ❌
+        </button>
+    `;
+
+    lista.appendChild(fila);
+
+});
     });
 
     displayTotal.innerText = `$${totalVenta.toLocaleString('es-AR')}`;
@@ -96,7 +136,21 @@ function renderizarCarrito() {
 }
 
 function quitarItem(index) {
-    carrito.splice(index, 1);
+
+    if (carrito[index].cantidad > 1) {
+
+        carrito[index].cantidad -= 1;
+
+        carrito[index].subtotal =
+            carrito[index].cantidad *
+            carrito[index].precio;
+
+    } else {
+
+        carrito.splice(index, 1);
+
+    }
+
     renderizarCarrito();
 }
 
