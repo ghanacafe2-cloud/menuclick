@@ -23,7 +23,7 @@ if (inputCodigo) {
         const valor = inputCodigo.value.trim().toUpperCase();
         const exacto = productosDB.find(p => p.id === valor);
         
-        if (exacto && valor.length >= 8) {
+        if (exacto) {
             procesarEscaneo(valor);
             inputCodigo.value = '';
             document.getElementById('lista-sugerencias').innerHTML = '';
@@ -51,7 +51,10 @@ function procesarEscaneo(codigo) {
     p.nombre.toUpperCase() === codigo.toUpperCase()
 );
     if (producto) {
-        if (producto.stock <= 0) {
+       if (
+    producto.tipo !== "variable" &&
+    producto.stock <= 0
+) {
             alert(`⚠️ ¡SIN STOCK! El producto "${producto.nombre}" no tiene unidades.`);
             return;
         }
@@ -207,13 +210,35 @@ function finalizarVenta() {
 
     const metodo = document.getElementById('metodo-pago').value;
 
-    // Descontar Stock
-    carrito.forEach(itemVendido => {
-        const enDB = productosDB.find(p => p.nombre === itemVendido.nombre);
-        if (enDB && enDB.stock > 0) {
-            enDB.stock -= 1;
+   // Descontar stock REAL
+carrito.forEach(itemVendido => {
+
+    const enDB = productosDB.find(
+        p => p.id === itemVendido.id
+    );
+
+    if (enDB) {
+
+        // Solo descontar si NO es variable
+        if (enDB.tipo !== "variable") {
+
+            // Evitar negativos
+            if (enDB.stock >= itemVendido.cantidad) {
+
+                enDB.stock -= itemVendido.cantidad;
+
+            } else {
+
+                alert(`Stock insuficiente para ${enDB.nombre}`);
+                return;
+
+            }
+
         }
-    });
+
+    }
+
+});
     
     // Guardar Inventario actualizado
     localStorage.setItem('inventario', JSON.stringify(productosDB));
@@ -247,8 +272,20 @@ function anularUltimaVenta() {
         // Devolver stock
         if (ultima.productos) {
             ultima.productos.forEach(prod => {
-                const enDB = productosDB.find(p => p.nombre === prod.nombre);
-                if (enDB) enDB.stock += 1;
+                const enDB = productosDB.find(
+    p => p.id === prod.id
+);
+
+if (enDB) {
+
+    // Solo devolver stock si NO es variable
+    if (enDB.tipo !== "variable") {
+
+        enDB.stock += prod.cantidad;
+
+    }
+
+}
             });
             localStorage.setItem('inventario', JSON.stringify(productosDB));
         }
@@ -274,11 +311,29 @@ function enviarAFiado() {
 
     localStorage.setItem('fiados', JSON.stringify(fiados));
     
-    // Descontar stock también en fiados
-    carrito.forEach(item => {
-        const enDB = productosDB.find(p => p.nombre === item.nombre);
-        if (enDB) enDB.stock -= 1;
-    });
+    // Descontar stock REAL en fiados
+carrito.forEach(item => {
+
+    const enDB = productosDB.find(
+        p => p.id === item.id
+    );
+
+    if (enDB) {
+
+        // No descontar variables
+        if (enDB.tipo !== "variable") {
+
+            if (enDB.stock >= item.cantidad) {
+
+                enDB.stock -= item.cantidad;
+
+            }
+
+        }
+
+    }
+
+});
     localStorage.setItem('inventario', JSON.stringify(productosDB));
 
     alert("Anotado en fiados.");
@@ -298,7 +353,7 @@ function mostrarSugerencias(busqueda) {
     contenedor.innerHTML = filtrados.map(p => `
         <div class="sugerencia-item" onclick="procesarEscaneo('${p.id}'); document.getElementById('codigo').value=''; document.getElementById('lista-sugerencias').innerHTML=''">
             <span>${p.nombre}</span>
-            <b>$${p.precio}</b>
+           <b>$${p.precio.toLocaleString('es-AR')}</b>
         </div>
     `).join('');
 }
