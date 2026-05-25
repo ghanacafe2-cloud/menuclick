@@ -117,7 +117,7 @@ function limpiarSoloGastos() {
         alert("Lista de pagos despejada.");
     }
 }
-async function subirInventarioAGitHub() {
+function eliminarProducto(index) {
 
     const token =
         localStorage.getItem('github_token');
@@ -421,3 +421,187 @@ function beep() {
 // Inicialización
 validarToken();
 actualizarTodo();
+// --- SUBIR INVENTARIO A GITHUB ---
+async function subirInventarioAGitHub() {
+
+    const token =
+        localStorage.getItem('github_token');
+
+    if (!token) {
+
+        alert("⚠️ Falta token GitHub");
+
+        return false;
+    }
+
+    try {
+
+        // Obtener SHA actual
+        const response = await fetch(
+            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
+            {
+                headers: {
+                    Authorization: `token ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        // Convertir JSON a Base64
+        const contenido =
+            btoa(
+                unescape(
+                    encodeURIComponent(
+                        JSON.stringify(inventario, null, 2)
+                    )
+                )
+            );
+
+        // Subir archivo
+        const update = await fetch(
+            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
+            {
+                method: 'PUT',
+
+                headers: {
+                    Authorization: `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+
+                    message: 'Actualización automática inventario',
+
+                    content: contenido,
+
+                    sha: data.sha
+
+                })
+
+            }
+        );
+
+        if (update.ok) {
+
+            console.log("✅ Inventario sincronizado");
+
+            return true;
+
+        } else {
+
+            console.error(await update.json());
+
+            alert("❌ Error subiendo inventario");
+
+            return false;
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("❌ Error GitHub");
+
+        return false;
+    }
+}
+
+// --- GUARDAR PRODUCTO ---
+async function guardarProducto() {
+
+    const id =
+        document.getElementById('admin-codigo')
+        .value.trim()
+        .toUpperCase();
+
+    const nom =
+        document.getElementById('admin-nombre')
+        .value.trim();
+
+    const pre =
+        parseFloat(
+            document.getElementById('admin-precio').value
+        );
+
+    const stk =
+        parseInt(
+            document.getElementById('admin-stock').value
+        ) || 0;
+
+    const tip =
+        document.getElementById('admin-tipo').value;
+
+    if (!id || !nom || isNaN(pre)) {
+
+        return alert("Faltan datos");
+
+    }
+
+    // Validaciones
+    if (pre < 0 || stk < 0) {
+
+        return alert("⚠️ Valores inválidos");
+
+    }
+
+    // Buscar existente
+    const idx =
+        inventario.findIndex(p => p.id === id);
+
+    const producto = {
+
+        id,
+        nombre: nom,
+        precio: pre,
+        tipo: tip,
+        stock: stk
+
+    };
+
+    if (idx > -1) {
+
+        inventario[idx] = producto;
+
+    } else {
+
+        inventario.push(producto);
+
+    }
+
+    // Guardar local
+    localStorage.setItem(
+        'inventario',
+        JSON.stringify(inventario)
+    );
+
+    // Subir nube
+    await subirInventarioAGitHub();
+
+    // Actualizar pantalla
+    actualizarTodo();
+
+    // Limpiar formulario
+    limpiarFormulario();
+
+    alert("✅ Producto guardado");
+
+}
+
+// --- ELIMINAR PRODUCTO ---
+function eliminarProducto(index) {
+
+    if (!confirm("¿Borrar producto?")) return;
+
+    inventario.splice(index, 1);
+
+    localStorage.setItem(
+        'inventario',
+        JSON.stringify(inventario)
+    );
+
+    subirInventarioAGitHub();
+
+    actualizarTodo();
+
+}
