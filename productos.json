@@ -53,6 +53,13 @@
     "nombre": "sutido",
     "precio": 5000,
     "tipo": "fijo",
-    "stock": 10
+    "stock": 9
+  },
+  {
+    "id": "1",
+    "nombre": "yogur",
+    "precio": 3500,
+    "tipo": "fijo",
+    "stock": 20
   }
 ]
