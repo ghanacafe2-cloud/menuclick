@@ -1,3 +1,14 @@
+const PIN_ADMIN = "1234";
+
+const acceso = prompt("Ingrese PIN administrador");
+
+if (acceso !== PIN_ADMIN) {
+
+    alert("Acceso denegado");
+
+    window.location.href = "index.html";
+
+}
 const USERNAME = "ghanacafe2-cloud"; 
 const REPO = "menuclick";
 const FILE_PATH = "productos.json";
