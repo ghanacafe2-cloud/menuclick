@@ -117,7 +117,90 @@ function limpiarSoloGastos() {
         alert("Lista de pagos despejada.");
     }
 }
+async function subirInventarioAGitHub() {
 
+    const token =
+        localStorage.getItem('github_token');
+
+    if (!token) {
+
+        alert("⚠️ Falta token GitHub");
+
+        return false;
+    }
+
+    try {
+
+        // 1. Obtener SHA actual
+        const response = await fetch(
+            'https://api.github.com/repos/ghanacafe2-cloud/menuclick/contents/productos.json',
+            {
+                headers: {
+                    Authorization: `token ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        // 2. Convertir JSON a Base64
+        const contenido =
+            btoa(
+                unescape(
+                    encodeURIComponent(
+                        JSON.stringify(productosDB, null, 2)
+                    )
+                )
+            );
+
+        // 3. Subir archivo
+        const update = await fetch(
+            'https://api.github.com/repos/ghanacafe2-cloud/menuclick/contents/productos.json',
+            {
+                method: 'PUT',
+
+                headers: {
+                    Authorization: `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+
+                    message: 'Actualización automática inventario',
+
+                    content: contenido,
+
+                    sha: data.sha
+
+                })
+
+            }
+        );
+
+        if (update.ok) {
+
+            console.log("✅ Inventario sincronizado");
+
+            return true;
+
+        } else {
+
+            console.error(await update.json());
+
+            alert("❌ Error subiendo inventario");
+
+            return false;
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("❌ Error GitHub");
+
+        return false;
+    }
+}
 // --- PRODUCTOS ---
 async function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
@@ -131,11 +214,12 @@ async function guardarProducto() {
     if (idx > -1) inventario[idx] = { id, nombre: nom, precio: pre, tipo: tip, stock: stk };
     else inventario.push({ id, nombre: nom, precio: pre, tipo: tip, stock: stk });
 
-    localStorage.setItem('inventario', JSON.stringify(inventario));
-    await subirAGithub(inventario);
-    actualizarTodo();
-    limpiarFormulario();
-}
+  localStorage.setItem(
+   'inventario',
+   JSON.stringify(productosDB)
+);
+
+subirInventarioAGitHub();
 
 function eliminarProducto(index) {
     if (confirm("¿Borrar?")) { 
