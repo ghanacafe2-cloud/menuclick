@@ -6,16 +6,46 @@ let ultimoEscaneo = "";
 let timeoutEscaneo = null;
 
 // 1. CARGA DE DATOS
-function cargarInventario() {
-    const datosLocales = localStorage.getItem('inventario');
-    if (datosLocales) {
-        productosDB = JSON.parse(datosLocales);
-    } else {
-        productosDB = [
-            { id: "PAN", nombre: "Pan Francés (kg)", precio: 0, tipo: "variable", stock: 999 },
-            { id: "7790070411730", nombre: "Yerba Mate", precio: 2500, tipo: "fijo", stock: 10 }
-        ];
+async function cargarInventario() {
+
+    try {
+
+        const response = await fetch(
+            'https://raw.githubusercontent.com/ghanacafe2-cloud/menuclick/main/productos.json'
+        );
+
+        productosDB = await response.json();
+
+        // Guardar cache local
+        localStorage.setItem(
+            'inventario',
+            JSON.stringify(productosDB)
+        );
+
+        console.log("✅ Inventario cargado desde GitHub");
+
+    } catch (error) {
+
+        console.error("⚠️ Error cargando nube");
+
+        // Backup local
+        const datosLocales =
+            localStorage.getItem('inventario');
+
+        if (datosLocales) {
+
+            productosDB = JSON.parse(datosLocales);
+
+            console.log("📦 Inventario cargado local");
+
+        } else {
+
+            productosDB = [];
+
+        }
+
     }
+
 }
 
 // 2. ESCUCHA DE LA PISTOLITA Y BÚSQUEDA MANUAL
