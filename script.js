@@ -2,6 +2,8 @@
 let productosDB = [];
 let carrito = [];
 let totalVenta = 0;
+let ultimoEscaneo = "";
+let timeoutEscaneo = null;
 
 // 1. CARGA DE DATOS
 function cargarInventario() {
@@ -19,18 +21,49 @@ function cargarInventario() {
 // 2. ESCUCHA DE LA PISTOLITA Y BÚSQUEDA MANUAL
 const inputCodigo = document.getElementById('codigo');
 if (inputCodigo) {
-    inputCodigo.addEventListener('input', (e) => {
-        const valor = inputCodigo.value.trim().toUpperCase();
-        const exacto = productosDB.find(p => p.id === valor);
-        
+  inputCodigo.addEventListener('input', () => {
+
+    clearTimeout(timeoutEscaneo);
+
+    timeoutEscaneo = setTimeout(() => {
+
+        const valor =
+            inputCodigo.value.trim().toUpperCase();
+
+        if (!valor) return;
+
+        // Evitar doble lectura
+        if (valor === ultimoEscaneo) return;
+
+        ultimoEscaneo = valor;
+
+        const exacto = productosDB.find(
+            p => p.id === valor
+        );
+
         if (exacto) {
+
             procesarEscaneo(valor);
+
             inputCodigo.value = '';
-            document.getElementById('lista-sugerencias').innerHTML = '';
+
+            document.getElementById(
+                'lista-sugerencias'
+            ).innerHTML = '';
+
+            setTimeout(() => {
+                ultimoEscaneo = "";
+            }, 500);
+
         } else {
+
             mostrarSugerencias(valor);
+
         }
-    });
+
+    }, 80);
+
+});
 
     inputCodigo.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
@@ -60,7 +93,11 @@ function procesarEscaneo(codigo) {
         }
         if (producto.tipo === "variable") {
             const precioManual = parseFloat(prompt(`Precio para ${producto.nombre}:`));
-            if (!isNaN(precioManual) && precioManual > 0) {
+           if (
+    !isNaN(precioManual) &&
+    precioManual > 0 &&
+    precioManual < 10000000
+) {
               agregarAlCarrito(
     producto.id,
     producto.nombre,
@@ -190,6 +227,11 @@ function calcularVuelto() {
     if (!pagaConInput || !vueltoDisplay) return;
 
     const pagaCon = parseFloat(pagaConInput.value) || 0;
+    if (pagaCon < 0) {
+    vueltoDisplay.innerText = "Monto inválido";
+    vueltoDisplay.style.color = "red";
+    return;
+}
     const vuelto = pagaCon - totalVenta;
 
     if (pagaCon === 0) {
@@ -211,35 +253,42 @@ function finalizarVenta() {
     const metodo = document.getElementById('metodo-pago').value;
 
    // Descontar stock REAL
-carrito.forEach(itemVendido => {
+// VALIDAR STOCK ANTES DE DESCONTAR
+for (const itemVendido of carrito) {
 
     const enDB = productosDB.find(
         p => p.id === itemVendido.id
     );
 
-    if (enDB) {
+    if (!enDB) continue;
 
-        // Solo descontar si NO es variable
-        if (enDB.tipo !== "variable") {
+    // Ignorar productos variables
+    if (enDB.tipo === "variable") continue;
 
-            // Evitar negativos
-            if (enDB.stock >= itemVendido.cantidad) {
+    // Validar stock
+    if (enDB.stock < itemVendido.cantidad) {
 
-                enDB.stock -= itemVendido.cantidad;
+        alert(`⚠️ Stock insuficiente para ${enDB.nombre}`);
 
-            } else {
+        return;
+    }
+}
 
-                alert(`Stock insuficiente para ${enDB.nombre}`);
-                return;
+// DESCONTAR STOCK
+for (const itemVendido of carrito) {
 
-            }
+    const enDB = productosDB.find(
+        p => p.id === itemVendido.id
+    );
 
-        }
+    if (!enDB) continue;
+
+    if (enDB.tipo !== "variable") {
+
+        enDB.stock -= itemVendido.cantidad;
 
     }
-
-});
-    
+}
     // Guardar Inventario actualizado
     localStorage.setItem('inventario', JSON.stringify(productosDB));
 
