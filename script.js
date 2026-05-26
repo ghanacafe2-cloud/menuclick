@@ -4,6 +4,7 @@ let carrito = [];
 let totalVenta = 0;
 let ultimoEscaneo = "";
 let timeoutEscaneo = null;
+let fiados = [];
 
 // --- SISTEMA DE AUDIO (Efectos de sonido táctiles) ---
 function reproducirSonido(tipo) {
@@ -65,49 +66,55 @@ function reproducirSonido(tipo) {
     }
 }
 
-// 1. CARGA DE DATOS INTELIGENTE (Prioriza archivo local, luego GitHub, luego caché local)
+// 1. CARGA DE DATOS INTELIGENTE (Prioriza API del servidor Python, luego local estático, luego localStorage)
 async function cargarInventario() {
     try {
-        // Intento 1: Archivo local (productos.json en la misma carpeta)
-        console.log("🔄 Intentando cargar productos.json local...");
-        const response = await fetch('./productos.json');
-        if (!response.ok) throw new Error("Archivo local no disponible o bloqueado por CORS");
+        console.log("🔄 Intentando cargar inventario desde API server.py...");
+        const response = await fetch('/api/inventario');
+        if (!response.ok) throw new Error("API de inventario no disponible");
         productosDB = await response.json();
-        console.log("✅ Inventario cargado localmente desde productos.json");
-    } catch (errorLocal) {
-        console.warn("⚠️ Falló carga de productos.json local, intentando GitHub...", errorLocal.message);
+        console.log("✅ Inventario cargado desde API de server.py (productos.json en disco)");
+    } catch (errorApi) {
+        console.warn("⚠️ Falló API de server.py, intentando archivo estático...", errorApi.message);
         try {
-            // Intento 2: Nube GitHub
-            const response = await fetch(
-                'https://raw.githubusercontent.com/ghanacafe2-cloud/menuclick/main/productos.json'
-            );
-            if (!response.ok) throw new Error("Error en respuesta de GitHub");
+            const response = await fetch('./productos.json');
+            if (!response.ok) throw new Error("Archivo local estático no disponible");
             productosDB = await response.json();
-            console.log("✅ Inventario cargado desde GitHub");
-        } catch (errorGithub) {
-            console.warn("⚠️ Falló carga desde GitHub, usando caché de localStorage...", errorGithub.message);
-            // Intento 3: Cache local
+            console.log("✅ Inventario cargado desde productos.json estático");
+        } catch (errorLocal) {
+            console.warn("⚠️ Falló carga estática, usando caché de localStorage...", errorLocal.message);
             const datosLocales = localStorage.getItem('inventario');
             if (datosLocales) {
                 productosDB = JSON.parse(datosLocales);
-                console.log("📦 Inventario restaurado desde caché local");
+                console.log("📦 Inventario cargado desde caché local");
             } else {
                 productosDB = [];
-                console.error("❌ No se encontraron productos. Base de datos vacía.");
+                console.error("❌ Base de datos vacía.");
             }
         }
     }
 
-    // Siempre guardar en cache local si logramos cargar algo
     if (productosDB.length > 0) {
         localStorage.setItem('inventario', JSON.stringify(productosDB));
+    }
+}
+
+async function cargarFiados() {
+    try {
+        const res = await fetch('/api/fiados');
+        if (res.ok) {
+            fiados = await res.json();
+            localStorage.setItem('fiados', JSON.stringify(fiados));
+        }
+    } catch (e) {
+        console.warn("No se pudo cargar fiados desde API, usando local cache", e);
+        fiados = JSON.parse(localStorage.getItem('fiados')) || [];
     }
 }
 
 // 2. ESCUCHA DE LA PISTOLITA Y BÚSQUEDA MANUAL
 const inputCodigo = document.getElementById('codigo');
 if (inputCodigo) {
-    // Escucha en tiempo real para búsqueda manual y auto-sugerencias
     inputCodigo.addEventListener('input', () => {
         clearTimeout(timeoutEscaneo);
         
@@ -118,20 +125,17 @@ if (inputCodigo) {
                 return;
             }
 
-            // Si es un código exacto de barras escaneado (normalmente largo)
             const exacto = productosDB.find(p => p.id.toUpperCase() === valor);
             if (exacto) {
                 procesarEscaneo(valor);
                 inputCodigo.value = '';
                 ocultarSugerencias();
             } else {
-                // Si no es un código exacto, mostrar sugerencias
                 mostrarSugerencias(valor);
             }
         }, 100);
     });
 
-    // Escucha de ENTER (común en lectoras al terminar de escribir el código)
     inputCodigo.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             const valor = inputCodigo.value.trim().toUpperCase();
@@ -146,6 +150,9 @@ if (inputCodigo) {
 
 // 3. LÓGICA DE ESCANEO
 function procesarEscaneo(codigo) {
+    const cantInput = document.getElementById('cantidad-agregar');
+    const cantidadAAgregar = cantInput ? (parseInt(cantInput.value) || 1) : 1;
+
     const producto = productosDB.find(p =>
         p.id.toUpperCase() === codigo.toUpperCase() ||
         p.nombre.toUpperCase() === codigo.toUpperCase()
@@ -160,49 +167,82 @@ function procesarEscaneo(codigo) {
         }
 
         if (producto.tipo === "variable") {
-            // Producto de precio variable (pan, fiambrería, etc.)
             reproducirSonido('scanner');
             const precioManual = parseFloat(prompt(`Precio para ${producto.nombre}:`));
             if (!isNaN(precioManual) && precioManual > 0 && precioManual < 10000000) {
-                agregarAlCarrito(producto.id, producto.nombre, precioManual);
+                agregarAlCarrito(producto.id, producto.nombre, precioManual, cantidadAAgregar);
             } else {
                 reproducirSonido('alerta');
             }
         } else {
-            // Producto de precio fijo
             reproducirSonido('scanner');
-            agregarAlCarrito(producto.id, producto.nombre, producto.precio);
+            agregarAlCarrito(producto.id, producto.nombre, producto.precio, cantidadAAgregar);
         }
+        
+        // Reset a 1
+        if (cantInput) cantInput.value = 1;
     } else {
         reproducirSonido('alerta');
         alert(`Código o producto "${codigo}" no encontrado en el inventario.`);
     }
 }
 
-// 4. MANEJO DEL CARRITO
-function agregarAlCarrito(id, nombre, precio) {
+// 4. MANEJO DEL CARRITO Y CANTIDADES MANUALES
+function agregarAlCarrito(id, nombre, precio, cantidad = 1) {
     const existente = carrito.find(item => item.id === id);
 
     if (existente) {
-        // Validar si hay stock disponible para agregar una unidad más
         const enDB = productosDB.find(p => p.id === id);
-        if (enDB && enDB.tipo !== "variable" && enDB.stock <= existente.cantidad) {
+        if (enDB && enDB.tipo !== "variable" && enDB.stock < (existente.cantidad + cantidad)) {
             reproducirSonido('alerta');
-            alert(`⚠️ No hay más stock disponible para "${nombre}" (Unidades en stock: ${enDB.stock}).`);
+            alert(`⚠️ No hay suficiente stock para agregar ${cantidad} unidades de "${nombre}" (Stock disponible: ${enDB.stock}, En carrito: ${existente.cantidad}).`);
             return;
         }
-        existente.cantidad += 1;
+        existente.cantidad += cantidad;
         existente.subtotal = existente.cantidad * existente.precio;
     } else {
+        const enDB = productosDB.find(p => p.id === id);
+        if (enDB && enDB.tipo !== "variable" && enDB.stock < cantidad) {
+            reproducirSonido('alerta');
+            alert(`⚠️ No hay suficiente stock para "${nombre}" (Stock disponible: ${enDB.stock}, Solicitado: ${cantidad}).`);
+            return;
+        }
         carrito.push({
             id: id,
             nombre: nombre,
             precio: precio,
-            cantidad: 1,
-            subtotal: precio
+            cantidad: cantidad,
+            subtotal: precio * cantidad
         });
     }
 
+    renderizarCarrito();
+}
+
+function actualizarCantidad(index, nuevaCantidad) {
+    const qty = parseInt(nuevaCantidad);
+    if (isNaN(qty) || qty <= 0) {
+        quitarItemCompleto(index);
+        return;
+    }
+
+    const item = carrito[index];
+    const enDB = productosDB.find(p => p.id === item.id);
+
+    if (enDB && enDB.tipo !== "variable") {
+        if (enDB.stock === undefined || enDB.stock < qty) {
+            reproducirSonido('alerta');
+            alert(`⚠️ Stock insuficiente para "${item.nombre}". Stock disponible: ${enDB.stock || 0}`);
+            const maxVal = Math.max(1, enDB.stock || 1);
+            item.cantidad = maxVal;
+            item.subtotal = item.cantidad * item.precio;
+            renderizarCarrito();
+            return;
+        }
+    }
+
+    item.cantidad = qty;
+    item.subtotal = item.cantidad * item.precio;
     renderizarCarrito();
 }
 
@@ -236,16 +276,21 @@ function renderizarCarrito() {
             <div class="prod-info">
                 <strong>${item.nombre}</strong>
                 <br>
-                <small>
-                    ${item.cantidad} x $${item.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </small>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                    <input type="number" min="1" class="qty-input" value="${item.cantidad}" 
+                        onchange="actualizarCantidad(${index}, this.value)" 
+                        style="width: 65px; padding: 5px 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); border-radius: 8px; text-align: center; font-weight: 700; font-size: 1rem; outline: none;">
+                    <span style="color: var(--text-secondary); font-size: 0.95rem;">
+                        x $${item.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </span>
+                </div>
             </div>
 
             <div class="prod-subtotal">
                 $${item.subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
             </div>
 
-            <button class="btn-eliminar" onclick="quitarItem(${index})">
+            <button class="btn-eliminar" onclick="quitarItemCompleto(${index})" title="Quitar producto">
                 ❌
             </button>
         `;
@@ -264,6 +309,12 @@ function quitarItem(index) {
     } else {
         carrito.splice(index, 1);
     }
+    reproducirSonido('scanner');
+    renderizarCarrito();
+}
+
+function quitarItemCompleto(index) {
+    carrito.splice(index, 1);
     reproducirSonido('scanner');
     renderizarCarrito();
 }
@@ -342,8 +393,8 @@ function ocultarSugerencias() {
     }
 }
 
-// 6. FINALIZAR VENTA (CORREGIDA CON ACTUALIZACIÓN DE LOCALSTORAGE Y GITHUB)
-function finalizarVenta() {
+// 6. FINALIZAR VENTA (PERSISTENCIA DIRECTA EN ARCHIVOS JSON DEL SERVIDOR PYTHON)
+async function finalizarVenta() {
     if (carrito.length === 0) {
         reproducirSonido('alerta');
         alert("El carrito está vacío");
@@ -356,7 +407,7 @@ function finalizarVenta() {
     for (const itemVendido of carrito) {
         const enDB = productosDB.find(p => p.id === itemVendido.id);
         if (!enDB) continue;
-        if (enDB.tipo === "variable") continue; // Ignorar precio variable
+        if (enDB.tipo === "variable") continue;
 
         if (enDB.stock === undefined || enDB.stock < itemVendido.cantidad) {
             reproducirSonido('alerta');
@@ -377,17 +428,49 @@ function finalizarVenta() {
     // Guardar Inventario actualizado en caché
     localStorage.setItem('inventario', JSON.stringify(productosDB));
 
-    // Guardar Venta en Historial
-    const ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    // Obtener historial de ventas de la API para añadir la nueva
+    let ventasHistoricas = [];
+    try {
+        const res = await fetch('/api/ventas');
+        if (res.ok) {
+            ventasHistoricas = await res.json();
+        }
+    } catch (e) {
+        console.warn("No se pudo conectar a la API de ventas, usando caché local", e);
+        ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    }
+
     ventasHistoricas.push({
         total: totalVenta,
         metodo: metodo,
         fecha: new Date().toLocaleString(),
-        productos: [...carrito] // Detalle necesario para anulaciones
+        productos: [...carrito]
     });
     localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
 
-    // Intentar sincronizar con GitHub si el token existe en admin.js (comparten localStorage)
+    // GUARDAR EN DISCO (API de Python)
+    try {
+        // Guardar ventas del día en ventas.json
+        await fetch('/api/ventas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ventasHistoricas)
+        });
+        console.log("💾 Ventas guardadas en ventas.json");
+
+        // Guardar inventario en productos.json
+        await fetch('/api/inventario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productosDB)
+        });
+        console.log("💾 Inventario actualizado en productos.json");
+    } catch (errorApiWrite) {
+        console.error("❌ Error guardando datos en servidor local:", errorApiWrite);
+        alert("⚠️ Advertencia: No se pudo guardar la venta en el disco duro (servidor inactivo). Guardado temporalmente en navegador.");
+    }
+
+    // Intentar subir a GitHub si está configurado
     intentarSubirInventarioSilencioso();
 
     reproducirSonido('exito');
@@ -397,7 +480,6 @@ function finalizarVenta() {
     document.getElementById('paga-con').value = '';
     renderizarCarrito();
     
-    // Enfocar nuevamente para agilizar escaneo
     setTimeout(() => {
         if (inputCodigo) inputCodigo.focus();
     }, 50);
@@ -406,7 +488,7 @@ function finalizarVenta() {
 // Sincronización silenciosa con GitHub en segundo plano si hay token
 async function intentarSubirInventarioSilencioso() {
     const token = localStorage.getItem('github_token');
-    if (!token) return; // Si no hay token de nube, trabaja de forma puramente local.
+    if (!token) return;
 
     const USERNAME = "ghanacafe2-cloud";
     const REPO = "menuclick";
@@ -436,15 +518,22 @@ async function intentarSubirInventarioSilencioso() {
                 })
             }
         );
-        console.log("☁️ Sincronización con GitHub exitosa en segundo plano.");
+        console.log("☁️ Sincronización con GitHub exitosa.");
     } catch (e) {
-        console.warn("⚠️ No se pudo sincronizar stock en la nube (sin conexión o error API)", e);
+        console.warn("⚠️ Error en segundo plano subiendo a GitHub", e);
     }
 }
 
-// 7. ANULAR VENTA (CORREGIDA)
-function anularUltimaVenta() {
-    let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+// 7. ANULAR VENTA (CORREGIDA PARA TRABAJAR CON API)
+async function anularUltimaVenta() {
+    let ventas = [];
+    try {
+        const res = await fetch('/api/ventas');
+        if (res.ok) ventas = await res.json();
+    } catch (e) {
+        ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    }
+
     if (ventas.length === 0) {
         reproducirSonido('alerta');
         alert("No hay ventas para anular.");
@@ -454,7 +543,6 @@ function anularUltimaVenta() {
     const ultima = ventas[ventas.length - 1];
     
     if (confirm(`¿Anular venta de $${ultima.total.toLocaleString('es-AR')} realizada el ${ultima.fecha}? Se devolverá el stock.`)) {
-        // Devolver stock
         if (ultima.productos) {
             ultima.productos.forEach(prod => {
                 const enDB = productosDB.find(p => p.id === prod.id);
@@ -463,19 +551,36 @@ function anularUltimaVenta() {
                 }
             });
             localStorage.setItem('inventario', JSON.stringify(productosDB));
-            intentarSubirInventarioSilencioso();
         }
 
         ventas.pop(); 
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+
+        // Actualizar en el disco duro (API)
+        try {
+            await fetch('/api/ventas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ventas)
+            });
+            await fetch('/api/inventario', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productosDB)
+            });
+        } catch (e) {
+            console.warn("Error guardando anulación en el servidor", e);
+        }
+
+        intentarSubirInventarioSilencioso();
         reproducirSonido('exito');
         alert("Venta anulada correctamente.");
         renderizarCarrito();
     }
 }
 
-// 8. FIADOS Y EXTRAS
-function enviarAFiado() {
+// 8. FIADOS Y EXTRAS (CON API)
+async function enviarAFiado() {
     if (carrito.length === 0) {
         reproducirSonido('alerta');
         alert("El carrito está vacío");
@@ -484,7 +589,13 @@ function enviarAFiado() {
     const cliente = prompt("¿Nombre del cliente a quien se le fía?");
     if (!cliente || cliente.trim() === "") return;
 
-    let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
+    try {
+        const res = await fetch('/api/fiados');
+        if (res.ok) fiados = await res.json();
+    } catch (e) {
+        fiados = JSON.parse(localStorage.getItem('fiados')) || [];
+    }
+
     const idx = fiados.findIndex(f => f.cliente.toUpperCase() === cliente.toUpperCase().trim());
     
     if (idx > -1) {
@@ -495,7 +606,7 @@ function enviarAFiado() {
 
     localStorage.setItem('fiados', JSON.stringify(fiados));
     
-    // Descontar stock REAL en fiados
+    // Descontar stock
     carrito.forEach(item => {
         const enDB = productosDB.find(p => p.id === item.id);
         if (enDB && enDB.tipo !== "variable") {
@@ -506,8 +617,24 @@ function enviarAFiado() {
     });
 
     localStorage.setItem('inventario', JSON.stringify(productosDB));
-    intentarSubirInventarioSilencioso();
 
+    // GUARDAR EN DISCO (API de Python)
+    try {
+        await fetch('/api/fiados', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(fiados)
+        });
+        await fetch('/api/inventario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productosDB)
+        });
+    } catch (e) {
+        console.warn("No se pudo guardar fiados en el servidor local", e);
+    }
+
+    intentarSubirInventarioSilencioso();
     reproducirSonido('exito');
     alert(`Anotado en fiados para: ${cliente}.\nMonto: $${totalVenta.toLocaleString('es-AR')}`);
     
@@ -525,14 +652,18 @@ function cancelarCarrito() {
     }
 }
 
-// Foco automático continuo en el mostrador (para escaneos rápidos)
+// Foco automático continuo en el mostrador
 window.onclick = function(e) {
-    if (inputCodigo && !['BUTTON', 'INPUT', 'SELECT', 'OPTION'].includes(e.target.tagName) && !e.target.closest('.sugerencia-item')) {
+    if (inputCodigo && !['BUTTON', 'INPUT', 'SELECT', 'OPTION'].includes(e.target.tagName) && !e.target.closest('.sugerencia-item') && !e.target.closest('.qty-input')) {
         inputCodigo.focus();
     }
 };
 
 // Cargar la base de datos al inicio
-cargarInventario().then(() => {
+async function inicializarMostrador() {
+    await cargarInventario();
+    await cargarFiados();
     renderizarCarrito();
-});
+}
+
+inicializarMostrador();
