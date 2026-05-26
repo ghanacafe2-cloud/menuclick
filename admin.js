@@ -1,66 +1,129 @@
+// Panel de Administración - Kiosco El Cholo
 const PIN_ADMIN = "1234";
 
-const acceso = prompt("Ingrese PIN administrador");
-
+// Control de acceso seguro
+const acceso = prompt("Ingrese PIN de administrador para acceder a este panel:");
 if (acceso !== PIN_ADMIN) {
-
-    alert("Acceso denegado");
-
+    alert("❌ Acceso denegado. Código PIN incorrecto.");
     window.location.href = "index.html";
-
 }
+
+// Configuración de sincronización de GitHub
 const USERNAME = "ghanacafe2-cloud"; 
 const REPO = "menuclick";
 const FILE_PATH = "productos.json";
 
-let inventario = JSON.parse(localStorage.getItem('inventario')) || [];
-let fiados = JSON.parse(localStorage.getItem('fiados')) || [];
+let inventario = [];
+let fiados = [];
 
-// --- NUBE ---
+// --- GESTIÓN DE TOKEN DE GITHUB ---
 function guardarToken() { 
-    localStorage.setItem('github_token', document.getElementById('gh-token').value.trim()); 
-    validarToken(); 
+    const input = document.getElementById('gh-token');
+    if (input) {
+        localStorage.setItem('github_token', input.value.trim()); 
+        validarToken(); 
+    }
 }
 
 async function validarToken() {
     const token = localStorage.getItem('github_token');
-    if (token && document.getElementById('gh-token')) document.getElementById('gh-token').value = token;
-    if (!token) return;
+    const ghInput = document.getElementById('gh-token');
+    if (token && ghInput) ghInput.value = token;
+    
+    const statusSpan = document.getElementById('token-status');
+    if (!statusSpan) return;
+
+    if (!token) {
+        statusSpan.innerText = "❌ (Sin configurar)";
+        statusSpan.style.color = "var(--text-secondary)";
+        return;
+    }
+    
     try {
-        const res = await fetch('https://api.github.com/user', { headers: { Authorization: `token ${token}` } });
-        document.getElementById('token-status').innerText = res.ok ? "✅" : "❌";
-    } catch (e) { }
+        const res = await fetch('https://api.github.com/user', { 
+            headers: { Authorization: `token ${token}` } 
+        });
+        if (res.ok) {
+            statusSpan.innerText = "✅ (Conectado)";
+            statusSpan.style.color = "var(--success)";
+        } else {
+            statusSpan.innerText = "❌ (Token inválido)";
+            statusSpan.style.color = "var(--danger)";
+        }
+    } catch (e) {
+        statusSpan.innerText = "⚠️ (Error de conexión)";
+        statusSpan.style.color = "var(--warning)";
+    }
 }
 
-async function subirAGithub(data) {
+// Subir inventario actualizado a GitHub (Segundo Plano)
+async function subirInventarioAGitHub() {
     const token = localStorage.getItem('github_token');
-    if (!token) return;
+    if (!token) return false;
+    
     try {
-        const resInfo = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
-            headers: { Authorization: `token ${token}` }
-        });
-        let sha = resInfo.ok ? (await resInfo.json()).sha : undefined;
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-        await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`, {
-            method: 'PUT',
-            headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: "Update", content, sha })
-        });
-    } catch (e) { }
+        // 1. Obtener SHA del archivo existente
+        const response = await fetch(
+            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
+            { headers: { Authorization: `token ${token}` } }
+        );
+        
+        let sha;
+        if (response.ok) {
+            const data = await response.json();
+            sha = data.sha;
+        }
+        
+        // 2. Codificar contenido JSON a Base64 de forma segura
+        const jsonString = JSON.stringify(inventario, null, 2);
+        const contenido = btoa(unescape(encodeURIComponent(jsonString)));
+        
+        // 3. Enviar actualización
+        const update = await fetch(
+            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
+            {
+                method: 'PUT',
+                headers: {
+                    Authorization: `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: "Actualización automática de inventario - Panel Admin",
+                    content: contenido,
+                    sha: sha
+                })
+            }
+        );
+        
+        if (update.ok) {
+            console.log("☁️ Sincronizado exitosamente con GitHub.");
+            return true;
+        } else {
+            const err = await update.json();
+            console.error("❌ Error de API de GitHub:", err);
+            return false;
+        }
+    } catch (error) {
+        console.error("❌ Error de red sincronizando GitHub:", error);
+        return false;
+    }
 }
 
-// --- GESTIÓN DE GASTOS (PAGOS) ---
+// --- GESTIÓN DE GASTOS / PAGOS ---
 function registrarGasto() {
     const det = document.getElementById('gasto-detalle').value.trim();
     const mon = parseFloat(document.getElementById('gasto-monto').value);
     
-    if (!det || isNaN(mon)) return alert("Completá detalle y monto del pago");
+    if (!det || isNaN(mon) || mon <= 0) {
+        alert("⚠️ Por favor, complete el detalle y el monto del pago correctamente.");
+        return;
+    }
     
-    if (confirm(`¿Confirmas el pago de $${mon} por: ${det}?`)) {
+    if (confirm(`¿Confirmas el registro del pago de $${mon.toLocaleString('es-AR')} por: "${det}"?`)) {
         let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
         
         const nuevoGasto = { 
-            total: -mon, 
+            total: -mon, // Monto negativo representa salida de caja
             metodo: 'efectivo', 
             fecha: new Date().toLocaleString(), 
             detalle: `GASTO: ${det}` 
@@ -73,6 +136,7 @@ function registrarGasto() {
         document.getElementById('gasto-monto').value = '';
         
         actualizarTodo();
+        beepSuccess();
     }
 }
 
@@ -85,12 +149,15 @@ function dibujarTablaGastos() {
     
     v.forEach((x, index) => {
         if (x.total < 0) {
+            const time = x.fecha.split(', ')[1] || x.fecha;
             tbodyGastos.innerHTML += `
                 <tr>
-                    <td>${x.fecha.split(', ')[1] || x.fecha}</td> 
+                    <td>${time}</td> 
                     <td>${x.detalle}</td>
-                    <td style="color: #ff5252; font-weight: bold;">-$${Math.abs(x.total).toLocaleString()}</td>
-                    <td><button class="btn-danger" onclick="borrarGastoIndividual(${index})">🗑️</button></td>
+                    <td style="color: var(--danger); font-weight: bold;">-$${Math.abs(x.total).toLocaleString('es-AR')}</td>
+                    <td>
+                        <button class="btn btn-danger btn-icon-only" onclick="borrarGastoIndividual(${index})" title="Eliminar registro">🗑️</button>
+                    </td>
                 </tr>
             `;
         }
@@ -98,7 +165,7 @@ function dibujarTablaGastos() {
 }
 
 function borrarGastoIndividual(indexVentaOriginal) {
-    if (confirm("¿Borrar este registro de pago?")) {
+    if (confirm("¿Borrar este registro de salida de caja?")) {
         let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
         ventas.splice(indexVentaOriginal, 1);
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
@@ -108,244 +175,64 @@ function borrarGastoIndividual(indexVentaOriginal) {
 
 function limpiarSoloGastos() {
     let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    if (ventas.length === 0) return alert("No hay nada para limpiar.");
+    if (ventas.length === 0) return alert("No hay movimientos registrados.");
 
-    if (confirm("¿Querés borrar visualmente los pagos de la lista? \n\n⚠️ OJO: Esto no afecta el total de la caja.")) {
+    if (confirm("¿Querés limpiar visualmente los registros de pagos de la lista?\n\n⚠️ NOTA: Esto limpia el listado para iniciar un nuevo turno, pero no altera el saldo neto en efectivo actual.")) {
         const ventasLimpias = ventas.filter(item => item.total >= 0);
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventasLimpias));
         actualizarTodo();
-        alert("Lista de pagos despejada.");
+        alert("Lista de egresos despejada.");
     }
 }
-function eliminarProducto(index) {
 
-    const token =
-        localStorage.getItem('github_token');
-
-    if (!token) {
-
-        alert("⚠️ Falta token GitHub");
-
-        return false;
-    }
-
-    try {
-
-        // 1. Obtener SHA actual
-        const response = await fetch(
-            'https://api.github.com/repos/ghanacafe2-cloud/menuclick/contents/productos.json',
-            {
-                headers: {
-                    Authorization: `token ${token}`
-                }
-            }
-        );
-
-        const data = await response.json();
-
-        // 2. Convertir JSON a Base64
-        const contenido =
-            btoa(
-                unescape(
-                    encodeURIComponent(
-                        JSON.stringify(productosDB, null, 2)
-                    )
-                )
-            );
-
-        // 3. Subir archivo
-        const update = await fetch(
-            'https://api.github.com/repos/ghanacafe2-cloud/menuclick/contents/productos.json',
-            {
-                method: 'PUT',
-
-                headers: {
-                    Authorization: `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-
-                body: JSON.stringify({
-
-                    message: 'Actualización automática inventario',
-
-                    content: contenido,
-
-                    sha: data.sha
-
-                })
-
-            }
-        );
-
-        if (update.ok) {
-
-            console.log("✅ Inventario sincronizado");
-
-            return true;
-
-        } else {
-
-            console.error(await update.json());
-
-            alert("❌ Error subiendo inventario");
-
-            return false;
-        }
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert("❌ Error GitHub");
-
-        return false;
-    }
-}
-// --- PRODUCTOS ---
+// --- GESTIÓN DE PRODUCTOS ---
 async function guardarProducto() {
     const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
     const nom = document.getElementById('admin-nombre').value.trim();
     const pre = parseFloat(document.getElementById('admin-precio').value);
     const stk = parseInt(document.getElementById('admin-stock').value) || 0;
     const tip = document.getElementById('admin-tipo').value;
-    if (!id || !nom || isNaN(pre)) return alert("Faltan datos");
+
+    if (!id || !nom || isNaN(pre)) {
+        alert("⚠️ Faltan completar datos obligatorios (Código, Nombre y Precio).");
+        return;
+    }
+
+    if (pre < 0 || stk < 0) {
+        alert("⚠️ Valores inválidos. El precio y el stock no pueden ser negativos.");
+        return;
+    }
 
     const idx = inventario.findIndex(p => p.id === id);
-    if (idx > -1) inventario[idx] = { id, nombre: nom, precio: pre, tipo: tip, stock: stk };
-    else inventario.push({ id, nombre: nom, precio: pre, tipo: tip, stock: stk });
+    const producto = { id, nombre: nom, precio: pre, tipo: tip, stock: stk };
 
-  localStorage.setItem(
-   'inventario',
-   JSON.stringify(productosDB)
-);
+    if (idx > -1) {
+        inventario[idx] = producto;
+    } else {
+        inventario.push(producto);
+    }
 
-subirInventarioAGitHub();
+    // Guardar en cache local
+    localStorage.setItem('inventario', JSON.stringify(inventario));
+    actualizarTodo();
+    limpiarFormulario();
+    beepSuccess();
+
+    // Sincronizar con GitHub en segundo plano si hay token
+    subirInventarioAGitHub().then(success => {
+        if (success) {
+            console.log("Inventario subido a la nube correctamente.");
+        }
+    });
+}
 
 function eliminarProducto(index) {
-    if (confirm("¿Borrar?")) { 
+    if (confirm(`¿Está seguro de eliminar "${inventario[index].nombre}" del inventario?\nEsto es permanente.`)) { 
         inventario.splice(index, 1); 
         localStorage.setItem('inventario', JSON.stringify(inventario)); 
-        subirAGithub(inventario); 
         actualizarTodo(); 
+        subirInventarioAGitHub(); 
     }
-}
-
-// --- FIADOS ---
-function agregarFiado() {
-    const cli = document.getElementById('fiado-cliente').value.trim();
-    const mon = parseFloat(document.getElementById('fiado-monto').value);
-    if (!cli || isNaN(mon)) return;
-    const idx = fiados.findIndex(f => f.cliente.toUpperCase() === cli.toUpperCase());
-    if (idx > -1) fiados[idx].monto += mon;
-    else fiados.push({ cliente: cli, monto: mon });
-    localStorage.setItem('fiados', JSON.stringify(fiados));
-    document.getElementById('fiado-cliente').value = '';
-    document.getElementById('fiado-monto').value = '';
-    actualizarTodo();
-}
-
-function cobrarFiado(index) {
-    const f = fiados[index];
-    const modo = prompt(`Cobrar $${f.monto} a ${f.cliente}\n1: Efectivo\n2: Tarjeta\n3: QR`);
-    let met = modo === "1" ? "efectivo" : modo === "2" ? "debito" : modo === "3" ? "qr" : null;
-    if (met) {
-        let v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        v.push({ total: f.monto, metodo: met, fecha: new Date().toLocaleString(), detalle: `COBRO FIADO: ${f.cliente}` });
-        localStorage.setItem('ventas_realizadas', JSON.stringify(v));
-        fiados.splice(index, 1);
-        localStorage.setItem('fiados', JSON.stringify(fiados));
-        actualizarTodo();
-    }
-}
-
-// --- CIERRE DE CAJA ---
-function borrarVentas() {
-    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    if (v.length === 0) return alert("No hay ventas");
-    if (confirm("¿Cerrar la caja y guardar en historial?")) {
-        let e = 0, t = 0, q = 0;
-        v.forEach(x => { 
-            if(x.metodo==='efectivo') e+=x.total; 
-            else if(x.metodo==='debito') t+=x.total; 
-            else q+=x.total; 
-        });
-        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        h.push({ fecha: new Date().toLocaleDateString(), efectivo: e, otros: t+q, total: e+t+q });
-        localStorage.setItem('historial_cierres', JSON.stringify(h));
-        localStorage.removeItem('ventas_realizadas');
-        actualizarTodo();
-    }
-}
-
-// --- BORRAR HISTORIAL ---
-function borrarCierreHistorial(index) {
-    if (confirm("¿Estás seguro de borrar este cierre del historial? No se puede deshacer.")) {
-        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        h.splice(index, 1); 
-        localStorage.setItem('historial_cierres', JSON.stringify(h));
-        actualizarTodo(); 
-    }
-}
-
-// --- ACTUALIZAR PANTALLA ---
-function actualizarTodo() {
-    // 1. Totales de caja
-    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    let e=0, t=0, q=0;
-    v.forEach(x => { 
-        if(x.metodo==='efectivo') e+=x.total; 
-        else if(x.metodo==='debito') t+=x.total; 
-        else q+=x.total; 
-    });
-    
-    document.getElementById('total-efectivo').innerText = `$${e.toLocaleString()}`;
-    document.getElementById('total-debito').innerText = `$${t.toLocaleString()}`;
-    document.getElementById('total-qr').innerText = `$${q.toLocaleString()}`;
-    document.getElementById('total-general').innerText = `$${(e+t+q).toLocaleString()}`;
-
-    // 2. Tabla Productos e Inventario
-    const tbodyProd = document.querySelector('#tabla-productos tbody');
-    tbodyProd.innerHTML = '';
-    const reposicion = [];
-    inventario.forEach((p, i) => {
-        if (p.stock <= 3) reposicion.push(p.nombre);
-        tbodyProd.innerHTML += `<tr><td>${p.id}</td><td>${p.nombre}</td><td>$${p.precio}</td><td class="${p.stock<=3?'status-low':''}">${p.stock}</td><td><button class="btn-danger" onclick="eliminarProducto(${i})">🗑️</button></td></tr>`;
-    });
-
-    const alerta = document.getElementById('alerta-reposicion');
-    const lista = document.getElementById('lista-reposicion');
-    if (reposicion.length > 0) { 
-        alerta.style.display = 'block'; 
-        lista.innerHTML = reposicion.map(x => `<li>${x}</li>`).join(''); 
-    } else {
-        alerta.style.display = 'none';
-    }
-
-    // 3. Tabla Fiados
-    const tbodyFiado = document.querySelector('#tabla-fiados tbody');
-    tbodyFiado.innerHTML = '';
-    fiados.forEach((f, i) => {
-        tbodyFiado.innerHTML += `<tr><td>${f.cliente}</td><td style="color:#ff5252">$${f.monto}</td><td><button onclick="cobrarFiado(${i})" style="background:#4caf50; border:none; color:white; border-radius:4px; cursor:pointer; padding: 5px;">PAGÓ</button></td></tr>`;
-    });
-
-    // 4. Tabla Historial de Cierres (con botón de borrar)
-    const tbodyHist = document.getElementById('cuerpo-historial');
-    tbodyHist.innerHTML = '';
-    const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-    [...h].reverse().forEach((c, index) => {
-        const realIndex = h.length - 1 - index;
-        tbodyHist.innerHTML += `
-            <tr>
-                <td>${c.fecha}</td>
-                <td>$${c.efectivo.toLocaleString()}</td>
-                <td>$${c.otros.toLocaleString()}</td>
-                <td>$${c.total.toLocaleString()}</td>
-                <td><button class="btn-danger" onclick="borrarCierreHistorial(${realIndex})">🗑️</button></td>
-            </tr>`;
-    });
-
-    // 5. Tabla de Gastos/Pagos
-    dibujarTablaGastos(); 
 }
 
 function limpiarFormulario() { 
@@ -353,7 +240,122 @@ function limpiarFormulario() {
     document.getElementById('admin-nombre').value = ''; 
     document.getElementById('admin-precio').value = ''; 
     document.getElementById('admin-stock').value = ''; 
+    document.getElementById('admin-tipo').value = 'fijo';
+    document.getElementById('btn-guardar').innerText = '💾 GUARDAR EN EL INVENTARIO';
     document.getElementById('admin-codigo').focus(); 
+}
+
+// Búsqueda inteligente al escribir el código
+const adminCodigo = document.getElementById('admin-codigo');
+if (adminCodigo) {
+    adminCodigo.addEventListener('input', () => {
+        const val = adminCodigo.value.trim().toUpperCase();
+        if (val === '') return;
+        const p = inventario.find(item => item.id.toUpperCase() === val);
+        if (p) {
+            document.getElementById('admin-nombre').value = p.nombre;
+            document.getElementById('admin-precio').value = p.precio;
+            document.getElementById('admin-stock').value = p.stock;
+            document.getElementById('admin-tipo').value = p.tipo;
+            document.getElementById('btn-guardar').innerText = '💾 ACTUALIZAR EN INVENTARIO';
+        } else {
+            // Si el código no está, limpiar los demás campos listos para agregar nuevo
+            document.getElementById('admin-nombre').value = ''; 
+            document.getElementById('admin-precio').value = ''; 
+            document.getElementById('admin-stock').value = ''; 
+            document.getElementById('admin-tipo').value = 'fijo';
+            document.getElementById('btn-guardar').innerText = '💾 GUARDAR EN EL INVENTARIO';
+        }
+    });
+}
+
+// --- LIBRETA DE FIADOS ---
+function agregarFiado() {
+    const cli = document.getElementById('fiado-cliente').value.trim();
+    const mon = parseFloat(document.getElementById('fiado-monto').value);
+    
+    if (!cli || isNaN(mon) || mon <= 0) {
+        alert("⚠️ Ingrese un nombre de cliente y un monto válido.");
+        return;
+    }
+    
+    const idx = fiados.findIndex(f => f.cliente.toUpperCase() === cli.toUpperCase());
+    if (idx > -1) {
+        fiados[idx].monto += mon;
+    } else {
+        fiados.push({ cliente: cli, monto: mon });
+    }
+    
+    localStorage.setItem('fiados', JSON.stringify(fiados));
+    document.getElementById('fiado-cliente').value = '';
+    document.getElementById('fiado-monto').value = '';
+    actualizarTodo();
+    beepSuccess();
+}
+
+function cobrarFiado(index) {
+    const f = fiados[index];
+    const modo = prompt(`Cobrar deuda de $${f.monto.toLocaleString('es-AR')} a "${f.cliente}":\n\n1: Cobrar con EFECTIVO\n2: Cobrar con TARJETA\n3: Cobrar con QR / MercadoPago\n\nIngrese el número correspondiente:`);
+    
+    let met = modo === "1" ? "efectivo" : modo === "2" ? "debito" : modo === "3" ? "qr" : null;
+    if (met) {
+        let v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+        v.push({ 
+            total: f.monto, 
+            metodo: met, 
+            fecha: new Date().toLocaleString(), 
+            detalle: `COBRO FIADO: ${f.cliente}` 
+        });
+        localStorage.setItem('ventas_realizadas', JSON.stringify(v));
+        
+        fiados.splice(index, 1);
+        localStorage.setItem('fiados', JSON.stringify(fiados));
+        
+        actualizarTodo();
+        beepSuccess();
+        alert(`✅ Deuda saldada. Registrado en caja de ${met.toUpperCase()}.`);
+    } else if (modo !== null) {
+        alert("❌ Opción inválida.");
+    }
+}
+
+// --- CIERRE DE CAJA ---
+function borrarVentas() {
+    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    if (v.length === 0) return alert("No hay movimientos de caja cargados en el turno de hoy.");
+    
+    let e = 0, t = 0, q = 0;
+    v.forEach(x => { 
+        if (x.metodo === 'efectivo') e += x.total; 
+        else if (x.metodo === 'debito') t += x.total; 
+        else q += x.total; 
+    });
+    
+    const general = e + t + q;
+    
+    if (confirm(`¿CERRAR CAJA DE HOY?\n\nResumen Financiero:\n--------------------------\n💵 Efectivo Neto: $${e.toLocaleString('es-AR')}\n💳 Tarjetas/Débito: $${t.toLocaleString('es-AR')}\n📱 QR/MercadoPago: $${q.toLocaleString('es-AR')}\n--------------------------\n💰 TOTAL GENERAL: $${general.toLocaleString('es-AR')}\n\nLos datos se archivarán permanentemente en el historial de cierres y la caja de hoy se restablecerá a cero.`)) {
+        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+        h.push({ 
+            fecha: new Date().toLocaleString(), 
+            efectivo: e, 
+            otros: t + q, 
+            total: general 
+        });
+        localStorage.setItem('historial_cierres', JSON.stringify(h));
+        localStorage.removeItem('ventas_realizadas');
+        actualizarTodo();
+        beepSuccess();
+        alert("✅ Caja del día guardada en el historial y reiniciada.");
+    }
+}
+
+function borrarCierreHistorial(index) {
+    if (confirm("⚠️ ¿Estás seguro de borrar este cierre del historial?\nEsta acción es irreversible.")) {
+        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+        h.splice(index, 1); 
+        localStorage.setItem('historial_cierres', JSON.stringify(h));
+        actualizarTodo(); 
+    }
 }
 
 function anularUltimaVentaAdmin() {
@@ -361,247 +363,220 @@ function anularUltimaVentaAdmin() {
     if (ventas.length === 0) return alert("No hay movimientos para anular.");
 
     const ultima = ventas[ventas.length - 1];
-    if (confirm(`¿Anular el último movimiento: "${ultima.detalle || 'Venta'}" de $${ultima.total}?`)) {
+    
+    if (confirm(`¿Anular el último movimiento registrado?\nDetalle: "${ultima.detalle || 'Venta general'}"\nMonto: $${ultima.total.toLocaleString('es-AR')}`)) {
+        
+        // Devolver stock si era una venta general con productos detallados
+        if (ultima.total > 0 && ultima.productos) {
+            ultima.productos.forEach(prod => {
+                const enDB = inventario.find(p => p.id === prod.id);
+                if (enDB && enDB.tipo !== "variable") {
+                    enDB.stock += prod.cantidad;
+                }
+            });
+            localStorage.setItem('inventario', JSON.stringify(inventario));
+            subirInventarioAGitHub();
+        }
+
         ventas.pop();
         localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
         actualizarTodo();
-        alert("Movimiento anulado.");
+        alert("✅ Movimiento anulado correctamente. Stock devuelto (si corresponde).");
     }
 }
-// --- FUNCIÓN DE ESCÁNER CON CÁMARA ---
+
+// --- ACTUALIZAR TODO (Dibujar Tablas e Indicadores) ---
+function actualizarTodo() {
+    // 1. Totales de caja diaria
+    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+    let e = 0, t = 0, q = 0;
+    v.forEach(x => { 
+        if (x.metodo === 'efectivo') e += x.total; 
+        else if (x.metodo === 'debito') t += x.total; 
+        else q += x.total; 
+    });
+    
+    document.getElementById('total-efectivo').innerText = `$${e.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+    document.getElementById('total-debito').innerText = `$${t.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+    document.getElementById('total-qr').innerText = `$${q.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+    document.getElementById('total-general').innerText = `$${(e + t + q).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+
+    // 2. Tabla Productos de Inventario e Alerta de Reposición
+    const tbodyProd = document.querySelector('#tabla-productos tbody');
+    if (tbodyProd) {
+        tbodyProd.innerHTML = '';
+        const reposicion = [];
+        
+        // Ordenar productos alfabéticamente por nombre
+        inventario.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        inventario.forEach((p, i) => {
+            if (p.stock !== undefined && p.stock <= 3 && p.tipo !== "variable") {
+                reposicion.push(p.nombre);
+            }
+            
+            const trClass = (p.stock !== undefined && p.stock <= 3 && p.tipo !== "variable") ? 'status-low' : '';
+            const stockDisplay = p.tipo === 'variable' ? 'N/A' : (p.stock || 0);
+
+            tbodyProd.innerHTML += `
+                <tr class="${trClass}">
+                    <td><strong>${p.id}</strong></td>
+                    <td>${p.nombre}</td>
+                    <td>$${p.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                    <td>${stockDisplay}</td>
+                    <td>
+                        <button class="btn btn-danger btn-icon-only" onclick="eliminarProducto(${i})" title="Eliminar producto">🗑️</button>
+                    </td>
+                </tr>`;
+        });
+
+        // Mostrar Alerta de Reposición
+        const alerta = document.getElementById('alerta-reposicion');
+        const lista = document.getElementById('lista-reposicion');
+        if (alerta && lista) {
+            if (reposicion.length > 0) { 
+                alerta.style.display = 'block'; 
+                lista.innerHTML = reposicion.map(x => `<li><strong>${x}</strong> - Quedan 3 unidades o menos.</li>`).join(''); 
+            } else {
+                alerta.style.display = 'none';
+            }
+        }
+    }
+
+    // 3. Tabla de Fiados
+    const tbodyFiado = document.querySelector('#tabla-fiados tbody');
+    if (tbodyFiado) {
+        tbodyFiado.innerHTML = '';
+        
+        // Ordenar fiados por nombre
+        fiados.sort((a, b) => a.cliente.localeCompare(b.cliente));
+        
+        fiados.forEach((f, i) => {
+            tbodyFiado.innerHTML += `
+                <tr>
+                    <td><strong>${f.cliente}</strong></td>
+                    <td style="color: var(--danger); font-weight: bold;">$${f.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                    <td>
+                        <button class="btn btn-success" style="padding: 6px 12px; font-size: 0.85rem;" onclick="cobrarFiado(${i})">
+                            💸 PAGÓ
+                        </button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    // 4. Tabla Historial de Cierres
+    const tbodyHist = document.getElementById('cuerpo-historial');
+    if (tbodyHist) {
+        tbodyHist.innerHTML = '';
+        const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
+        [...h].reverse().forEach((c, index) => {
+            const realIndex = h.length - 1 - index;
+            tbodyHist.innerHTML += `
+                <tr>
+                    <td>${c.fecha}</td>
+                    <td>$${c.efectivo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                    <td>$${c.otros.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                    <td style="font-weight: 700; color: var(--success);">$${c.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                    <td>
+                        <button class="btn btn-danger btn-icon-only" onclick="borrarCierreHistorial(${realIndex})" title="Borrar del historial">🗑️</button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    // 5. Tabla de Gastos
+    dibujarTablaGastos(); 
+}
+
+// --- CÁMARA ESCÁNER EN LA WEB ---
 let html5QrCode;
 
 function toggleEscaner() {
     const readerDiv = document.getElementById('reader');
+    if (!readerDiv) return;
     
     // Si ya está prendido, lo apagamos
     if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().then(() => {
             readerDiv.style.display = 'none';
-            console.log("Escáner detenido");
+            console.log("Cámara apagada");
         });
         return;
     }
 
-    // Si no está creado, lo creamos
+    // Crear instancia si no existe
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("reader");
     }
 
     readerDiv.style.display = 'block';
 
-    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+    const config = { fps: 15, qrbox: { width: 260, height: 160 } };
 
     html5QrCode.start(
-        { facingMode: "environment" }, // Usa la cámara de atrás
+        { facingMode: "environment" }, // Cámara trasera del dispositivo
         config,
         (decodedText) => {
-            // Cuando detecta un código:
-            document.getElementById('admin-codigo').value = decodedText.toUpperCase();
-            beep(); // Sonidito de éxito
+            // Éxito al leer
+            const inputCod = document.getElementById('admin-codigo');
+            if (inputCod) {
+                inputCod.value = decodedText.toUpperCase();
+                // Desencadenar el evento de búsqueda
+                const event = new Event('input', { bubbles: true });
+                inputCod.dispatchEvent(event);
+            }
+            beepSuccess();
+            
+            // Apagar cámara
             html5QrCode.stop().then(() => {
                 readerDiv.style.display = 'none';
-                document.getElementById('admin-nombre').focus(); // Salta al nombre
+                const inputNom = document.getElementById('admin-nombre');
+                if (inputNom) inputNom.focus();
             });
         },
-        (errorMessage) => { /* Silencio para no llenar la consola de errores */ }
-    ).catch(err => alert("Error al abrir cámara: " + err));
+        (errorMessage) => { /* Silencioso para evitar inundar la consola */ }
+    ).catch(err => {
+        alert("⚠️ No se pudo iniciar la cámara: " + err);
+        readerDiv.style.display = 'none';
+    });
 }
 
-// Un ruidito para saber que escaneó
-function beep() {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioCtx.createOscillator();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-    oscillator.connect(audioCtx.destination);
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.1);
-}
-// Inicialización
-validarToken();
-actualizarTodo();
-// --- SUBIR INVENTARIO A GITHUB ---
-async function subirInventarioAGitHub() {
-
-    const token =
-        localStorage.getItem('github_token');
-
-    if (!token) {
-
-        alert("⚠️ Falta token GitHub");
-
-        return false;
-    }
-
+function beepSuccess() {
     try {
-
-        // Obtener SHA actual
-        const response = await fetch(
-            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
-            {
-                headers: {
-                    Authorization: `token ${token}`
-                }
-            }
-        );
-
-        const data = await response.json();
-
-        // Convertir JSON a Base64
-        const contenido =
-            btoa(
-                unescape(
-                    encodeURIComponent(
-                        JSON.stringify(inventario, null, 2)
-                    )
-                )
-            );
-
-        // Subir archivo
-        const update = await fetch(
-            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
-            {
-                method: 'PUT',
-
-                headers: {
-                    Authorization: `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-
-                body: JSON.stringify({
-
-                    message: 'Actualización automática inventario',
-
-                    content: contenido,
-
-                    sha: data.sha
-
-                })
-
-            }
-        );
-
-        if (update.ok) {
-
-            console.log("✅ Inventario sincronizado");
-
-            return true;
-
-        } else {
-
-            console.error(await update.json());
-
-            alert("❌ Error subiendo inventario");
-
-            return false;
-        }
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert("❌ Error GitHub");
-
-        return false;
-    }
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(900, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        oscillator.connect(gain);
+        gain.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) { }
 }
 
-// --- GUARDAR PRODUCTO ---
-async function guardarProducto() {
-
-    const id =
-        document.getElementById('admin-codigo')
-        .value.trim()
-        .toUpperCase();
-
-    const nom =
-        document.getElementById('admin-nombre')
-        .value.trim();
-
-    const pre =
-        parseFloat(
-            document.getElementById('admin-precio').value
-        );
-
-    const stk =
-        parseInt(
-            document.getElementById('admin-stock').value
-        ) || 0;
-
-    const tip =
-        document.getElementById('admin-tipo').value;
-
-    if (!id || !nom || isNaN(pre)) {
-
-        return alert("Faltan datos");
-
-    }
-
-    // Validaciones
-    if (pre < 0 || stk < 0) {
-
-        return alert("⚠️ Valores inválidos");
-
-    }
-
-    // Buscar existente
-    const idx =
-        inventario.findIndex(p => p.id === id);
-
-    const producto = {
-
-        id,
-        nombre: nom,
-        precio: pre,
-        tipo: tip,
-        stock: stk
-
-    };
-
-    if (idx > -1) {
-
-        inventario[idx] = producto;
-
+// Carga e inicialización inteligente en Admin
+async function inicializarAdmin() {
+    let localCache = localStorage.getItem('inventario');
+    if (localCache) {
+        inventario = JSON.parse(localCache);
     } else {
-
-        inventario.push(producto);
-
+        try {
+            console.log("Cargando inventario base en admin...");
+            const response = await fetch('./productos.json');
+            if (response.ok) {
+                inventario = await response.json();
+                localStorage.setItem('inventario', JSON.stringify(inventario));
+            }
+        } catch (e) {
+            console.warn("No se pudo cargar productos.json local en admin", e);
+        }
     }
-
-    // Guardar local
-    localStorage.setItem(
-        'inventario',
-        JSON.stringify(inventario)
-    );
-
-    // Subir nube
-    await subirInventarioAGitHub();
-
-    // Actualizar pantalla
+    
+    validarToken();
     actualizarTodo();
-
-    // Limpiar formulario
-    limpiarFormulario();
-
-    alert("✅ Producto guardado");
-
 }
 
-// --- ELIMINAR PRODUCTO ---
-function eliminarProducto(index) {
-
-    if (!confirm("¿Borrar producto?")) return;
-
-    inventario.splice(index, 1);
-
-    localStorage.setItem(
-        'inventario',
-        JSON.stringify(inventario)
-    );
-
-    subirInventarioAGitHub();
-
-    actualizarTodo();
-
-}
+inicializarAdmin();
