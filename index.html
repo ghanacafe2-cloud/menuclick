@@ -144,7 +144,7 @@
             transition: var(--transition);
         }
 
-        input#codigo:focus {
+        input#codigo:focus, input#cantidad-agregar:focus {
             border-color: var(--accent-primary);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
@@ -486,13 +486,18 @@
 <div id="contenedor">
     <!-- SECCIÓN IZQUIERDA: CARGA DE PRODUCTOS -->
     <div id="ventas">
-        <div class="search-container">
-            <input type="text" id="codigo" placeholder="Escaneá código de barras o escribí nombre..." autofocus autocomplete="off">
-            <div class="search-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"/>
-                    <path d="m21 21-4.3-4.3"/>
-                </svg>
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px; width: 110px; flex-shrink: 0;" title="Cantidad de productos a agregar">
+                <input type="number" id="cantidad-agregar" min="1" value="1" style="padding: 16px; font-size: 1.25rem; font-family: 'Inter', sans-serif; border: 2px solid var(--border-color); border-radius: 12px; background: var(--bg-primary); color: var(--text-primary); text-align: center; font-weight: 700; outline: none; box-sizing: border-box; transition: var(--transition);" onfocus="this.select()">
+            </div>
+            <div class="search-container" style="flex: 1; margin-bottom: 0;">
+                <input type="text" id="codigo" placeholder="Escaneá código de barras o escribí nombre..." autofocus autocomplete="off">
+                <div class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.3-4.3"/>
+                    </svg>
+                </div>
             </div>
         </div>
         
