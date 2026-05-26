@@ -8,13 +8,15 @@ if (acceso !== PIN_ADMIN) {
     window.location.href = "index.html";
 }
 
-// Configuración de sincronización de GitHub
+// Configuración de sincronización de GitHub (Opcional)
 const USERNAME = "ghanacafe2-cloud"; 
 const REPO = "menuclick";
 const FILE_PATH = "productos.json";
 
 let inventario = [];
 let fiados = [];
+let ventas = [];
+let historialCierres = [];
 
 // --- GESTIÓN DE TOKEN DE GITHUB ---
 function guardarToken() { 
@@ -56,13 +58,12 @@ async function validarToken() {
     }
 }
 
-// Subir inventario actualizado a GitHub (Segundo Plano)
+// Subir inventario actualizado a GitHub (Opcional, en segundo plano)
 async function subirInventarioAGitHub() {
     const token = localStorage.getItem('github_token');
     if (!token) return false;
     
     try {
-        // 1. Obtener SHA del archivo existente
         const response = await fetch(
             `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
             { headers: { Authorization: `token ${token}` } }
@@ -74,11 +75,9 @@ async function subirInventarioAGitHub() {
             sha = data.sha;
         }
         
-        // 2. Codificar contenido JSON a Base64 de forma segura
         const jsonString = JSON.stringify(inventario, null, 2);
         const contenido = btoa(unescape(encodeURIComponent(jsonString)));
         
-        // 3. Enviar actualización
         const update = await fetch(
             `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
             {
@@ -98,19 +97,46 @@ async function subirInventarioAGitHub() {
         if (update.ok) {
             console.log("☁️ Sincronizado exitosamente con GitHub.");
             return true;
-        } else {
-            const err = await update.json();
-            console.error("❌ Error de API de GitHub:", err);
-            return false;
         }
+        return false;
     } catch (error) {
         console.error("❌ Error de red sincronizando GitHub:", error);
         return false;
     }
 }
 
-// --- GESTIÓN DE GASTOS / PAGOS ---
-function registrarGasto() {
+// --- APIS DE PERSISTENCIA LOCAL ---
+async function apiGet(ruta, fallbackKey) {
+    try {
+        const res = await fetch(ruta);
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem(fallbackKey, JSON.stringify(data));
+            return data;
+        }
+    } catch (e) {
+        console.warn(`No se pudo leer de la API ${ruta}, usando caché local`, e);
+    }
+    return JSON.parse(localStorage.getItem(fallbackKey)) || [];
+}
+
+async function apiPost(ruta, data, fallbackKey) {
+    localStorage.setItem(fallbackKey, JSON.stringify(data));
+    try {
+        const res = await fetch(ruta, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return res.ok;
+    } catch (e) {
+        console.error(`Error guardando en API ${ruta}`, e);
+        return false;
+    }
+}
+
+// --- GESTIÓN DE GASTOS / EGRESOS ---
+async function registrarGasto() {
     const det = document.getElementById('gasto-detalle').value.trim();
     const mon = parseFloat(document.getElementById('gasto-monto').value);
     
@@ -120,7 +146,8 @@ function registrarGasto() {
     }
     
     if (confirm(`¿Confirmas el registro del pago de $${mon.toLocaleString('es-AR')} por: "${det}"?`)) {
-        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+        // Cargar ventas actuales
+        ventas = await apiGet('/api/ventas', 'ventas_realizadas');
         
         const nuevoGasto = { 
             total: -mon, // Monto negativo representa salida de caja
@@ -130,7 +157,9 @@ function registrarGasto() {
         };
         
         ventas.push(nuevoGasto);
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        
+        // Guardar ventas
+        await apiPost('/api/ventas', ventas, 'ventas_realizadas');
         
         document.getElementById('gasto-detalle').value = '';
         document.getElementById('gasto-monto').value = '';
@@ -145,9 +174,8 @@ function dibujarTablaGastos() {
     if (!tbodyGastos) return;
     
     tbodyGastos.innerHTML = '';
-    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     
-    v.forEach((x, index) => {
+    ventas.forEach((x, index) => {
         if (x.total < 0) {
             const time = x.fecha.split(', ')[1] || x.fecha;
             tbodyGastos.innerHTML += `
@@ -164,22 +192,21 @@ function dibujarTablaGastos() {
     });
 }
 
-function borrarGastoIndividual(indexVentaOriginal) {
+async function borrarGastoIndividual(indexVentaOriginal) {
     if (confirm("¿Borrar este registro de salida de caja?")) {
-        let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
         ventas.splice(indexVentaOriginal, 1);
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        await apiPost('/api/ventas', ventas, 'ventas_realizadas');
         actualizarTodo();
     }
 }
 
-function limpiarSoloGastos() {
-    let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+async function limpiarSoloGastos() {
     if (ventas.length === 0) return alert("No hay movimientos registrados.");
 
     if (confirm("¿Querés limpiar visualmente los registros de pagos de la lista?\n\n⚠️ NOTA: Esto limpia el listado para iniciar un nuevo turno, pero no altera el saldo neto en efectivo actual.")) {
         const ventasLimpias = ventas.filter(item => item.total >= 0);
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventasLimpias));
+        ventas = ventasLimpias;
+        await apiPost('/api/ventas', ventas, 'ventas_realizadas');
         actualizarTodo();
         alert("Lista de egresos despejada.");
     }
@@ -212,24 +239,20 @@ async function guardarProducto() {
         inventario.push(producto);
     }
 
-    // Guardar en cache local
-    localStorage.setItem('inventario', JSON.stringify(inventario));
+    // Guardar en disco (API)
+    await apiPost('/api/inventario', inventario, 'inventario');
     actualizarTodo();
     limpiarFormulario();
     beepSuccess();
 
-    // Sincronizar con GitHub en segundo plano si hay token
-    subirInventarioAGitHub().then(success => {
-        if (success) {
-            console.log("Inventario subido a la nube correctamente.");
-        }
-    });
+    // Sincronizar en la nube en segundo plano si hay token
+    subirInventarioAGitHub();
 }
 
-function eliminarProducto(index) {
+async function eliminarProducto(index) {
     if (confirm(`¿Está seguro de eliminar "${inventario[index].nombre}" del inventario?\nEsto es permanente.`)) { 
         inventario.splice(index, 1); 
-        localStorage.setItem('inventario', JSON.stringify(inventario)); 
+        await apiPost('/api/inventario', inventario, 'inventario');
         actualizarTodo(); 
         subirInventarioAGitHub(); 
     }
@@ -245,7 +268,6 @@ function limpiarFormulario() {
     document.getElementById('admin-codigo').focus(); 
 }
 
-// Búsqueda inteligente al escribir el código
 const adminCodigo = document.getElementById('admin-codigo');
 if (adminCodigo) {
     adminCodigo.addEventListener('input', () => {
@@ -259,7 +281,6 @@ if (adminCodigo) {
             document.getElementById('admin-tipo').value = p.tipo;
             document.getElementById('btn-guardar').innerText = '💾 ACTUALIZAR EN INVENTARIO';
         } else {
-            // Si el código no está, limpiar los demás campos listos para agregar nuevo
             document.getElementById('admin-nombre').value = ''; 
             document.getElementById('admin-precio').value = ''; 
             document.getElementById('admin-stock').value = ''; 
@@ -270,7 +291,7 @@ if (adminCodigo) {
 }
 
 // --- LIBRETA DE FIADOS ---
-function agregarFiado() {
+async function agregarFiado() {
     const cli = document.getElementById('fiado-cliente').value.trim();
     const mon = parseFloat(document.getElementById('fiado-monto').value);
     
@@ -286,30 +307,34 @@ function agregarFiado() {
         fiados.push({ cliente: cli, monto: mon });
     }
     
-    localStorage.setItem('fiados', JSON.stringify(fiados));
+    await apiPost('/api/fiados', fiados, 'fiados');
     document.getElementById('fiado-cliente').value = '';
     document.getElementById('fiado-monto').value = '';
     actualizarTodo();
     beepSuccess();
 }
 
-function cobrarFiado(index) {
+async function cobrarFiado(index) {
     const f = fiados[index];
     const modo = prompt(`Cobrar deuda de $${f.monto.toLocaleString('es-AR')} a "${f.cliente}":\n\n1: Cobrar con EFECTIVO\n2: Cobrar con TARJETA\n3: Cobrar con QR / MercadoPago\n\nIngrese el número correspondiente:`);
     
     let met = modo === "1" ? "efectivo" : modo === "2" ? "debito" : modo === "3" ? "qr" : null;
     if (met) {
-        let v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-        v.push({ 
+        // Cargar ventas actualizadas de la API
+        ventas = await apiGet('/api/ventas', 'ventas_realizadas');
+        
+        ventas.push({ 
             total: f.monto, 
             metodo: met, 
             fecha: new Date().toLocaleString(), 
             detalle: `COBRO FIADO: ${f.cliente}` 
         });
-        localStorage.setItem('ventas_realizadas', JSON.stringify(v));
         
         fiados.splice(index, 1);
-        localStorage.setItem('fiados', JSON.stringify(fiados));
+        
+        // Guardar ambos en la API
+        await apiPost('/api/ventas', ventas, 'ventas_realizadas');
+        await apiPost('/api/fiados', fiados, 'fiados');
         
         actualizarTodo();
         beepSuccess();
@@ -320,12 +345,11 @@ function cobrarFiado(index) {
 }
 
 // --- CIERRE DE CAJA ---
-function borrarVentas() {
-    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    if (v.length === 0) return alert("No hay movimientos de caja cargados en el turno de hoy.");
+async function borrarVentas() {
+    if (ventas.length === 0) return alert("No hay movimientos de caja cargados en el turno de hoy.");
     
     let e = 0, t = 0, q = 0;
-    v.forEach(x => { 
+    ventas.forEach(x => { 
         if (x.metodo === 'efectivo') e += x.total; 
         else if (x.metodo === 'debito') t += x.total; 
         else q += x.total; 
@@ -334,32 +358,38 @@ function borrarVentas() {
     const general = e + t + q;
     
     if (confirm(`¿CERRAR CAJA DE HOY?\n\nResumen Financiero:\n--------------------------\n💵 Efectivo Neto: $${e.toLocaleString('es-AR')}\n💳 Tarjetas/Débito: $${t.toLocaleString('es-AR')}\n📱 QR/MercadoPago: $${q.toLocaleString('es-AR')}\n--------------------------\n💰 TOTAL GENERAL: $${general.toLocaleString('es-AR')}\n\nLos datos se archivarán permanentemente en el historial de cierres y la caja de hoy se restablecerá a cero.`)) {
-        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        h.push({ 
+        // Cargar historial actual de la API
+        historialCierres = await apiGet('/api/historial-cierres', 'historial_cierres');
+        
+        historialCierres.push({ 
             fecha: new Date().toLocaleString(), 
             efectivo: e, 
             otros: t + q, 
             total: general 
         });
-        localStorage.setItem('historial_cierres', JSON.stringify(h));
-        localStorage.removeItem('ventas_realizadas');
+        
+        // Limpiar ventas
+        ventas = [];
+        
+        // Guardar ambos en la API
+        await apiPost('/api/historial-cierres', historialCierres, 'historial_cierres');
+        await apiPost('/api/ventas', ventas, 'ventas_realizadas');
+        
         actualizarTodo();
         beepSuccess();
         alert("✅ Caja del día guardada en el historial y reiniciada.");
     }
 }
 
-function borrarCierreHistorial(index) {
+async function borrarCierreHistorial(index) {
     if (confirm("⚠️ ¿Estás seguro de borrar este cierre del historial?\nEsta acción es irreversible.")) {
-        let h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        h.splice(index, 1); 
-        localStorage.setItem('historial_cierres', JSON.stringify(h));
+        historialCierres.splice(index, 1); 
+        await apiPost('/api/historial-cierres', historialCierres, 'historial_cierres');
         actualizarTodo(); 
     }
 }
 
-function anularUltimaVentaAdmin() {
-    let ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
+async function anularUltimaVentaAdmin() {
     if (ventas.length === 0) return alert("No hay movimientos para anular.");
 
     const ultima = ventas[ventas.length - 1];
@@ -374,12 +404,12 @@ function anularUltimaVentaAdmin() {
                     enDB.stock += prod.cantidad;
                 }
             });
-            localStorage.setItem('inventario', JSON.stringify(inventario));
+            await apiPost('/api/inventario', inventario, 'inventario');
             subirInventarioAGitHub();
         }
 
         ventas.pop();
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
+        await apiPost('/api/ventas', ventas, 'ventas_realizadas');
         actualizarTodo();
         alert("✅ Movimiento anulado correctamente. Stock devuelto (si corresponde).");
     }
@@ -388,9 +418,8 @@ function anularUltimaVentaAdmin() {
 // --- ACTUALIZAR TODO (Dibujar Tablas e Indicadores) ---
 function actualizarTodo() {
     // 1. Totales de caja diaria
-    const v = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
     let e = 0, t = 0, q = 0;
-    v.forEach(x => { 
+    ventas.forEach(x => { 
         if (x.metodo === 'efectivo') e += x.total; 
         else if (x.metodo === 'debito') t += x.total; 
         else q += x.total; 
@@ -469,9 +498,8 @@ function actualizarTodo() {
     const tbodyHist = document.getElementById('cuerpo-historial');
     if (tbodyHist) {
         tbodyHist.innerHTML = '';
-        const h = JSON.parse(localStorage.getItem('historial_cierres')) || [];
-        [...h].reverse().forEach((c, index) => {
-            const realIndex = h.length - 1 - index;
+        [...historialCierres].reverse().forEach((c, index) => {
+            const realIndex = historialCierres.length - 1 - index;
             tbodyHist.innerHTML += `
                 <tr>
                     <td>${c.fecha}</td>
@@ -496,7 +524,6 @@ function toggleEscaner() {
     const readerDiv = document.getElementById('reader');
     if (!readerDiv) return;
     
-    // Si ya está prendido, lo apagamos
     if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().then(() => {
             readerDiv.style.display = 'none';
@@ -505,7 +532,6 @@ function toggleEscaner() {
         return;
     }
 
-    // Crear instancia si no existe
     if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("reader");
     }
@@ -515,27 +541,24 @@ function toggleEscaner() {
     const config = { fps: 15, qrbox: { width: 260, height: 160 } };
 
     html5QrCode.start(
-        { facingMode: "environment" }, // Cámara trasera del dispositivo
+        { facingMode: "environment" },
         config,
         (decodedText) => {
-            // Éxito al leer
             const inputCod = document.getElementById('admin-codigo');
             if (inputCod) {
                 inputCod.value = decodedText.toUpperCase();
-                // Desencadenar el evento de búsqueda
                 const event = new Event('input', { bubbles: true });
                 inputCod.dispatchEvent(event);
             }
             beepSuccess();
             
-            // Apagar cámara
             html5QrCode.stop().then(() => {
                 readerDiv.style.display = 'none';
                 const inputNom = document.getElementById('admin-nombre');
                 if (inputNom) inputNom.focus();
             });
         },
-        (errorMessage) => { /* Silencioso para evitar inundar la consola */ }
+        (errorMessage) => { }
     ).catch(err => {
         alert("⚠️ No se pudo iniciar la cámara: " + err);
         readerDiv.style.display = 'none';
@@ -557,23 +580,13 @@ function beepSuccess() {
     } catch (e) { }
 }
 
-// Carga e inicialización inteligente en Admin
+// Carga e inicialización inteligente en Admin comunicándose con server.py
 async function inicializarAdmin() {
-    let localCache = localStorage.getItem('inventario');
-    if (localCache) {
-        inventario = JSON.parse(localCache);
-    } else {
-        try {
-            console.log("Cargando inventario base en admin...");
-            const response = await fetch('./productos.json');
-            if (response.ok) {
-                inventario = await response.json();
-                localStorage.setItem('inventario', JSON.stringify(inventario));
-            }
-        } catch (e) {
-            console.warn("No se pudo cargar productos.json local en admin", e);
-        }
-    }
+    // Cargar todos los datos desde el servidor API
+    inventario = await apiGet('/api/inventario', 'inventario');
+    fiados = await apiGet('/api/fiados', 'fiados');
+    ventas = await apiGet('/api/ventas', 'ventas_realizadas');
+    historialCierres = await apiGet('/api/historial-cierres', 'historial_cierres');
     
     validarToken();
     actualizarTodo();
