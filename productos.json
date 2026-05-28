@@ -1,33 +1,10 @@
 [
   {
-    "id": "7790387800142",
-    "nombre": "Te Taragui",
-    "precio": 4000,
-    "tipo": "fijo"
-  },
-  {
     "id": "7791661000333",
     "nombre": "Bidón de agua Nestlé",
     "precio": 2500,
-    "tipo": "fijo"
-  },
-  {
-    "id": "7798048720907",
-    "nombre": "Maíz Pisingallo",
-    "precio": 1200,
-    "tipo": "fijo"
-  },
-  {
-    "id": "7790387015324",
-    "nombre": "Yerba Mananita 500 gr",
-    "precio": 2500,
-    "tipo": "fijo"
-  },
-  {
-    "id": "PAN",
-    "nombre": "pan",
-    "precio": 5000,
-    "tipo": "variable"
+    "tipo": "fijo",
+    "stock": 5
   },
   {
     "id": "865192070210108",
@@ -49,11 +26,35 @@
     "stock": 5
   },
   {
+    "id": "7798048720907",
+    "nombre": "Maíz Pisingallo",
+    "precio": 1200,
+    "tipo": "fijo"
+  },
+  {
+    "id": "PAN",
+    "nombre": "pan",
+    "precio": 5000,
+    "tipo": "variable"
+  },
+  {
     "id": "7790040147720",
     "nombre": "sutido",
     "precio": 5000,
     "tipo": "fijo",
     "stock": 9
+  },
+  {
+    "id": "7790387800142",
+    "nombre": "Te Taragui",
+    "precio": 4000,
+    "tipo": "fijo"
+  },
+  {
+    "id": "7790387015324",
+    "nombre": "Yerba Mananita 500 gr",
+    "precio": 2500,
+    "tipo": "fijo"
   },
   {
     "id": "1",
