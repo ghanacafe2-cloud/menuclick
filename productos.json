@@ -51,7 +51,8 @@
     "id": "7790387800142",
     "nombre": "Te Taragui",
     "precio": 4000,
-    "tipo": "fijo"
+    "tipo": "fijo",
+    "stock": 20
   },
   {
     "id": "7790387015324",
