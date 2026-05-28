@@ -66,50 +66,164 @@ function reproducirSonido(tipo) {
     }
 }
 
-// 1. CARGA DE DATOS INTELIGENTE (Prioriza API del servidor Python, luego local estático, luego localStorage)
-async function cargarInventario() {
-    try {
-        console.log("🔄 Intentando cargar inventario desde API server.py...");
-        const response = await fetch('/api/inventario');
-        if (!response.ok) throw new Error("API de inventario no disponible");
-        productosDB = await response.json();
-        console.log("✅ Inventario cargado desde API de server.py (productos.json en disco)");
-    } catch (errorApi) {
-        console.warn("⚠️ Falló API de server.py, intentando archivo estático...", errorApi.message);
-        try {
-            const response = await fetch('./productos.json');
-            if (!response.ok) throw new Error("Archivo local estático no disponible");
-            productosDB = await response.json();
-            console.log("✅ Inventario cargado desde productos.json estático");
-        } catch (errorLocal) {
-            console.warn("⚠️ Falló carga estática, usando caché de localStorage...", errorLocal.message);
-            const datosLocales = localStorage.getItem('inventario');
-            if (datosLocales) {
-                productosDB = JSON.parse(datosLocales);
-                console.log("📦 Inventario cargado desde caché local");
-            } else {
-                productosDB = [];
-                console.error("❌ Base de datos vacía.");
-            }
-        }
-    }
+// --- CONFIGURACIÓN DE SINCRONIZACIÓN DE GITHUB (Valores por defecto) ---
+const DEFAULT_USERNAME = "ghanacafe2-cloud";
+const DEFAULT_REPO = "menuclick";
 
-    if (productosDB.length > 0) {
-        localStorage.setItem('inventario', JSON.stringify(productosDB));
+const RUTA_A_ARCHIVO = {
+    '/api/inventario': 'productos.json',
+    '/api/ventas': 'ventas.json',
+    '/api/fiados': 'fiados.json',
+    '/api/historial-cierres': 'historial_cierres.json'
+};
+
+async function obtenerShaGitHub(filePath) {
+    const token = localStorage.getItem('github_token');
+    const username = localStorage.getItem('github_username') || DEFAULT_USERNAME;
+    const repo = localStorage.getItem('github_repo') || DEFAULT_REPO;
+    if (!token) return null;
+    
+    try {
+        const url = `https://api.github.com/repos/${username}/${repo}/contents/${filePath}`;
+        const response = await fetch(url, {
+            headers: { Authorization: `token ${token}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.sha;
+        }
+    } catch (e) {
+        console.warn(`No se pudo obtener SHA para ${filePath}:`, e);
+    }
+    return null;
+}
+
+async function leerDesdeGitHub(filePath) {
+    const token = localStorage.getItem('github_token');
+    const username = localStorage.getItem('github_username') || DEFAULT_USERNAME;
+    const repo = localStorage.getItem('github_repo') || DEFAULT_REPO;
+    if (!token) return null;
+
+    try {
+        const url = `https://api.github.com/repos/${username}/${repo}/contents/${filePath}`;
+        const response = await fetch(url, {
+            headers: { Authorization: `token ${token}` }
+        });
+        
+        if (response.status === 404) {
+            return []; // Retorna vacío si no existe el archivo
+        }
+        
+        if (response.ok) {
+            const data = await response.json();
+            const decodedContent = decodeURIComponent(escape(atob(data.content)));
+            return JSON.parse(decodedContent);
+        }
+    } catch (error) {
+        console.error(`Error leyendo ${filePath} desde GitHub:`, error);
+    }
+    return null;
+}
+
+async function guardarEnGitHub(filePath, data, mensajeCommit) {
+    const token = localStorage.getItem('github_token');
+    const username = localStorage.getItem('github_username') || DEFAULT_USERNAME;
+    const repo = localStorage.getItem('github_repo') || DEFAULT_REPO;
+    if (!token) return false;
+
+    try {
+        const sha = await obtenerShaGitHub(filePath);
+        const url = `https://api.github.com/repos/${username}/${repo}/contents/${filePath}`;
+        const jsonString = JSON.stringify(data, null, 2);
+        const contentBase64 = btoa(unescape(encodeURIComponent(jsonString)));
+
+        const body = {
+            message: mensajeCommit,
+            content: contentBase64
+        };
+        if (sha) {
+            body.sha = sha;
+        }
+
+        const updateResponse = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                Authorization: `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        return updateResponse.ok;
+    } catch (error) {
+        console.error(`Error guardando ${filePath} en GitHub:`, error);
+        return false;
     }
 }
 
-async function cargarFiados() {
-    try {
-        const res = await fetch('/api/fiados');
-        if (res.ok) {
-            fiados = await res.json();
-            localStorage.setItem('fiados', JSON.stringify(fiados));
+async function apiGet(ruta, fallbackKey) {
+    const fileName = RUTA_A_ARCHIVO[ruta];
+    
+    // 1. Intentar con GitHub si hay token
+    const token = localStorage.getItem('github_token');
+    if (token && fileName) {
+        console.log(`☁️ Intentando cargar ${fileName} desde GitHub...`);
+        const dataGithub = await leerDesdeGitHub(fileName);
+        if (dataGithub !== null) {
+            localStorage.setItem(fallbackKey, JSON.stringify(dataGithub));
+            console.log(`✅ ${fileName} cargado exitosamente desde GitHub`);
+            return dataGithub;
         }
-    } catch (e) {
-        console.warn("No se pudo cargar fiados desde API, usando local cache", e);
-        fiados = JSON.parse(localStorage.getItem('fiados')) || [];
     }
+
+    // 2. Intentar buscar un archivo local estático (solo para inventario)
+    if (ruta === '/api/inventario') {
+        try {
+            const response = await fetch('./productos.json');
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem(fallbackKey, JSON.stringify(data));
+                console.log(`✅ Inventario cargado desde productos.json local estático`);
+                return data;
+            }
+        } catch (e) {
+            console.warn(`No se pudo leer productos.json estático`, e);
+        }
+    }
+
+    // 3. Fallback a localStorage
+    console.warn(`⚠️ Usando caché de localStorage para ${ruta}`);
+    return JSON.parse(localStorage.getItem(fallbackKey)) || [];
+}
+
+async function apiPost(ruta, data, fallbackKey) {
+    localStorage.setItem(fallbackKey, JSON.stringify(data));
+    
+    const fileName = RUTA_A_ARCHIVO[ruta];
+    let githubOk = false;
+
+    // Guardar en GitHub si hay token
+    const token = localStorage.getItem('github_token');
+    if (token && fileName) {
+        console.log(`☁️ Intentando subir ${fileName} a GitHub...`);
+        githubOk = await guardarEnGitHub(fileName, data, `Actualización de ${fileName} - Mostrador`);
+        if (githubOk) {
+            console.log(`✅ ${fileName} sincronizado con GitHub`);
+        } else {
+            console.warn(`⚠️ No se pudo guardar ${fileName} en GitHub`);
+        }
+    }
+
+    return githubOk;
+}
+
+// 1. CARGA DE DATOS INTELIGENTE
+async function cargarInventario() {
+    productosDB = await apiGet('/api/inventario', 'inventario');
+}
+
+async function cargarFiados() {
+    fiados = await apiGet('/api/fiados', 'fiados');
 }
 
 // 2. ESCUCHA DE LA PISTOLITA Y BÚSQUEDA MANUAL
@@ -393,7 +507,7 @@ function ocultarSugerencias() {
     }
 }
 
-// 6. FINALIZAR VENTA (PERSISTENCIA DIRECTA EN ARCHIVOS JSON DEL SERVIDOR PYTHON)
+// 6. FINALIZAR VENTA (PERSISTENCIA HYBRID EN DISCO/GITHUB)
 async function finalizarVenta() {
     if (carrito.length === 0) {
         reproducirSonido('alerta');
@@ -425,20 +539,8 @@ async function finalizarVenta() {
         }
     }
 
-    // Guardar Inventario actualizado en caché
-    localStorage.setItem('inventario', JSON.stringify(productosDB));
-
-    // Obtener historial de ventas de la API para añadir la nueva
-    let ventasHistoricas = [];
-    try {
-        const res = await fetch('/api/ventas');
-        if (res.ok) {
-            ventasHistoricas = await res.json();
-        }
-    } catch (e) {
-        console.warn("No se pudo conectar a la API de ventas, usando caché local", e);
-        ventasHistoricas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    }
+    // Obtener historial de ventas de la API
+    let ventasHistoricas = await apiGet('/api/ventas', 'ventas_realizadas');
 
     ventasHistoricas.push({
         total: totalVenta,
@@ -446,32 +548,16 @@ async function finalizarVenta() {
         fecha: new Date().toLocaleString(),
         productos: [...carrito]
     });
-    localStorage.setItem('ventas_realizadas', JSON.stringify(ventasHistoricas));
 
-    // GUARDAR EN DISCO (API de Python)
-    try {
-        // Guardar ventas del día en ventas.json
-        await fetch('/api/ventas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ventasHistoricas)
-        });
-        console.log("💾 Ventas guardadas en ventas.json");
+    // Guardar ventas e inventario actualizado
+    const okVentas = await apiPost('/api/ventas', ventasHistoricas, 'ventas_realizadas');
+    const okInventario = await apiPost('/api/inventario', productosDB, 'inventario');
 
-        // Guardar inventario en productos.json
-        await fetch('/api/inventario', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productosDB)
-        });
-        console.log("💾 Inventario actualizado en productos.json");
-    } catch (errorApiWrite) {
-        console.error("❌ Error guardando datos en servidor local:", errorApiWrite);
-        alert("⚠️ Advertencia: No se pudo guardar la venta en el disco duro (servidor inactivo). Guardado temporalmente en navegador.");
+    if (okVentas && okInventario) {
+        console.log("💾 Ventas e inventario actualizados correctamente.");
+    } else {
+        console.warn("⚠️ Error subiendo datos a GitHub. Guardado en memoria local.");
     }
-
-    // Intentar subir a GitHub si está configurado
-    intentarSubirInventarioSilencioso();
 
     reproducirSonido('exito');
     alert(`✅ VENTA FINALIZADA CON ÉXITO\nTotal cobrado: $${totalVenta.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`);
@@ -485,54 +571,14 @@ async function finalizarVenta() {
     }, 50);
 }
 
-// Sincronización silenciosa con GitHub en segundo plano si hay token
+// Sincronización silenciosa (Mantenida por compatibilidad pero no hace falta llamada extra)
 async function intentarSubirInventarioSilencioso() {
-    const token = localStorage.getItem('github_token');
-    if (!token) return;
-
-    const USERNAME = "ghanacafe2-cloud";
-    const REPO = "menuclick";
-    const FILE_PATH = "productos.json";
-
-    try {
-        const resInfo = await fetch(
-            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
-            { headers: { Authorization: `token ${token}` } }
-        );
-        if (!resInfo.ok) return;
-        const info = await resInfo.json();
-        const contenido = btoa(unescape(encodeURIComponent(JSON.stringify(productosDB, null, 2))));
-        
-        await fetch(
-            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
-            {
-                method: 'PUT',
-                headers: {
-                    Authorization: `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: 'Descuento de stock por venta',
-                    content: contenido,
-                    sha: info.sha
-                })
-            }
-        );
-        console.log("☁️ Sincronización con GitHub exitosa.");
-    } catch (e) {
-        console.warn("⚠️ Error en segundo plano subiendo a GitHub", e);
-    }
+    return true;
 }
 
-// 7. ANULAR VENTA (CORREGIDA PARA TRABAJAR CON API)
+// 7. ANULAR VENTA (CORREGIDA PARA TRABAJAR CON API/GITHUB)
 async function anularUltimaVenta() {
-    let ventas = [];
-    try {
-        const res = await fetch('/api/ventas');
-        if (res.ok) ventas = await res.json();
-    } catch (e) {
-        ventas = JSON.parse(localStorage.getItem('ventas_realizadas')) || [];
-    }
+    let ventas = await apiGet('/api/ventas', 'ventas_realizadas');
 
     if (ventas.length === 0) {
         reproducirSonido('alerta');
@@ -550,36 +596,21 @@ async function anularUltimaVenta() {
                     enDB.stock += prod.cantidad;
                 }
             });
-            localStorage.setItem('inventario', JSON.stringify(productosDB));
         }
 
         ventas.pop(); 
-        localStorage.setItem('ventas_realizadas', JSON.stringify(ventas));
 
-        // Actualizar en el disco duro (API)
-        try {
-            await fetch('/api/ventas', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(ventas)
-            });
-            await fetch('/api/inventario', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(productosDB)
-            });
-        } catch (e) {
-            console.warn("Error guardando anulación en el servidor", e);
-        }
+        // Actualizar datos
+        await apiPost('/api/ventas', ventas, 'ventas_realizadas');
+        await apiPost('/api/inventario', productosDB, 'inventario');
 
-        intentarSubirInventarioSilencioso();
         reproducirSonido('exito');
         alert("Venta anulada correctamente.");
         renderizarCarrito();
     }
 }
 
-// 8. FIADOS Y EXTRAS (CON API)
+// 8. FIADOS Y EXTRAS (CON API/GITHUB)
 async function enviarAFiado() {
     if (carrito.length === 0) {
         reproducirSonido('alerta');
@@ -589,12 +620,7 @@ async function enviarAFiado() {
     const cliente = prompt("¿Nombre del cliente a quien se le fía?");
     if (!cliente || cliente.trim() === "") return;
 
-    try {
-        const res = await fetch('/api/fiados');
-        if (res.ok) fiados = await res.json();
-    } catch (e) {
-        fiados = JSON.parse(localStorage.getItem('fiados')) || [];
-    }
+    fiados = await apiGet('/api/fiados', 'fiados');
 
     const idx = fiados.findIndex(f => f.cliente.toUpperCase() === cliente.toUpperCase().trim());
     
@@ -604,8 +630,6 @@ async function enviarAFiado() {
         fiados.push({ cliente: cliente.trim(), monto: totalVenta });
     }
 
-    localStorage.setItem('fiados', JSON.stringify(fiados));
-    
     // Descontar stock
     carrito.forEach(item => {
         const enDB = productosDB.find(p => p.id === item.id);
@@ -616,25 +640,10 @@ async function enviarAFiado() {
         }
     });
 
-    localStorage.setItem('inventario', JSON.stringify(productosDB));
+    // Guardar fiados e inventario
+    await apiPost('/api/fiados', fiados, 'fiados');
+    await apiPost('/api/inventario', productosDB, 'inventario');
 
-    // GUARDAR EN DISCO (API de Python)
-    try {
-        await fetch('/api/fiados', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(fiados)
-        });
-        await fetch('/api/inventario', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productosDB)
-        });
-    } catch (e) {
-        console.warn("No se pudo guardar fiados en el servidor local", e);
-    }
-
-    intentarSubirInventarioSilencioso();
     reproducirSonido('exito');
     alert(`Anotado en fiados para: ${cliente}.\nMonto: $${totalVenta.toLocaleString('es-AR')}`);
     
