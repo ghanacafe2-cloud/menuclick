@@ -26,5 +26,11 @@
         "subtotal": 21000
       }
     ]
+  },
+  {
+    "total": -3000,
+    "metodo": "efectivo",
+    "fecha": "28/5/2026, 12:57:13",
+    "detalle": "GASTO: luis"
   }
 ]
