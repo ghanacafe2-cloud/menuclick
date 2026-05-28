@@ -12,5 +12,19 @@
         "subtotal": 5000
       }
     ]
+  },
+  {
+    "total": 21000,
+    "metodo": "qr",
+    "fecha": "28/5/2026, 12:55:48",
+    "productos": [
+      {
+        "id": "1",
+        "nombre": "yogur",
+        "precio": 3500,
+        "cantidad": 6,
+        "subtotal": 21000
+      }
+    ]
   }
 ]
