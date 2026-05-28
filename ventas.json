@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "total": 5000,
+    "metodo": "efectivo",
+    "fecha": "28/5/2026, 12:54:13",
+    "productos": [
+      {
+        "id": "7791661000333",
+        "nombre": "Bidón de agua Nestlé",
+        "precio": 2500,
+        "cantidad": 2,
+        "subtotal": 5000
+      }
+    ]
+  }
+]
