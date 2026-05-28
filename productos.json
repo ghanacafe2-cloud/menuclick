@@ -46,7 +46,7 @@
     "nombre": "leche",
     "precio": 4200,
     "tipo": "fijo",
-    "stock": 7
+    "stock": 5
   },
   {
     "id": "7790040147720",
@@ -60,6 +60,6 @@
     "nombre": "yogur",
     "precio": 3500,
     "tipo": "fijo",
-    "stock": 16
+    "stock": 19
   }
 ]
