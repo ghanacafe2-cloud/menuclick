@@ -8,29 +8,52 @@ if (acceso !== PIN_ADMIN) {
     window.location.href = "index.html";
 }
 
-// Configuración de sincronización de GitHub (Opcional)
-const USERNAME = "ghanacafe2-cloud"; 
-const REPO = "menuclick";
-const FILE_PATH = "productos.json";
+// Configuración de sincronización de GitHub (Valores por defecto)
+const DEFAULT_USERNAME = "ghanacafe2-cloud"; 
+const DEFAULT_REPO = "menuclick";
+
+const RUTA_A_ARCHIVO = {
+    '/api/inventario': 'productos.json',
+    '/api/ventas': 'ventas.json',
+    '/api/fiados': 'fiados.json',
+    '/api/historial-cierres': 'historial_cierres.json'
+};
 
 let inventario = [];
 let fiados = [];
 let ventas = [];
 let historialCierres = [];
 
-// --- GESTIÓN DE TOKEN DE GITHUB ---
-function guardarToken() { 
-    const input = document.getElementById('gh-token');
-    if (input) {
-        localStorage.setItem('github_token', input.value.trim()); 
-        validarToken(); 
-    }
+// --- GESTIÓN DE CONFIGURACIÓN DE GITHUB ---
+function guardarConfiguracionGitHub() {
+    const userEl = document.getElementById('gh-username');
+    const repoEl = document.getElementById('gh-repo');
+    const tokenEl = document.getElementById('gh-token');
+
+    if (userEl) localStorage.setItem('github_username', userEl.value.trim());
+    if (repoEl) localStorage.setItem('github_repo', repoEl.value.trim());
+    if (tokenEl) localStorage.setItem('github_token', tokenEl.value.trim());
+
+    validarToken();
+}
+
+// GuardarToken antiguo para compatibilidad por si se llama desde algún lado
+function guardarToken() {
+    guardarConfiguracionGitHub();
 }
 
 async function validarToken() {
     const token = localStorage.getItem('github_token');
-    const ghInput = document.getElementById('gh-token');
-    if (token && ghInput) ghInput.value = token;
+    const username = localStorage.getItem('github_username') || DEFAULT_USERNAME;
+    const repo = localStorage.getItem('github_repo') || DEFAULT_REPO;
+
+    const ghUserEl = document.getElementById('gh-username');
+    const ghRepoEl = document.getElementById('gh-repo');
+    const ghTokenEl = document.getElementById('gh-token');
+
+    if (ghUserEl && !ghUserEl.value) ghUserEl.value = localStorage.getItem('github_username') || "";
+    if (ghRepoEl && !ghRepoEl.value) ghRepoEl.value = localStorage.getItem('github_repo') || "";
+    if (ghTokenEl && !ghTokenEl.value) ghTokenEl.value = token || "";
     
     const statusSpan = document.getElementById('token-status');
     if (!statusSpan) return;
@@ -42,98 +65,155 @@ async function validarToken() {
     }
     
     try {
-        const res = await fetch('https://api.github.com/user', { 
+        const res = await fetch(`https://api.github.com/repos/${username}/${repo}`, { 
             headers: { Authorization: `token ${token}` } 
         });
         if (res.ok) {
             statusSpan.innerText = "✅ (Conectado)";
             statusSpan.style.color = "var(--success)";
         } else {
-            statusSpan.innerText = "❌ (Token inválido)";
+            statusSpan.innerText = "❌ (Repo/Token inválido)";
             statusSpan.style.color = "var(--danger)";
         }
     } catch (e) {
-        statusSpan.innerText = "⚠️ (Error de conexión)";
+        statusSpan.innerText = "⚠️ (Conexión lenta/error)";
         statusSpan.style.color = "var(--warning)";
     }
 }
 
-// Subir inventario actualizado a GitHub (Opcional, en segundo plano)
-async function subirInventarioAGitHub() {
+// --- FUNCIONES API DE GITHUB ---
+async function obtenerShaGitHub(filePath) {
     const token = localStorage.getItem('github_token');
-    if (!token) return false;
+    const username = localStorage.getItem('github_username') || DEFAULT_USERNAME;
+    const repo = localStorage.getItem('github_repo') || DEFAULT_REPO;
+    if (!token) return null;
     
     try {
-        const response = await fetch(
-            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
-            { headers: { Authorization: `token ${token}` } }
-        );
-        
-        let sha;
+        const url = `https://api.github.com/repos/${username}/${repo}/contents/${filePath}`;
+        const response = await fetch(url, {
+            headers: { Authorization: `token ${token}` }
+        });
         if (response.ok) {
             const data = await response.json();
-            sha = data.sha;
+            return data.sha;
+        }
+    } catch (e) {
+        console.warn(`No se pudo obtener SHA para ${filePath}:`, e);
+    }
+    return null;
+}
+
+async function leerDesdeGitHub(filePath) {
+    const token = localStorage.getItem('github_token');
+    const username = localStorage.getItem('github_username') || DEFAULT_USERNAME;
+    const repo = localStorage.getItem('github_repo') || DEFAULT_REPO;
+    if (!token) return null;
+
+    try {
+        const url = `https://api.github.com/repos/${username}/${repo}/contents/${filePath}`;
+        const response = await fetch(url, {
+            headers: { Authorization: `token ${token}` }
+        });
+        
+        if (response.status === 404) {
+            return []; // Archivo nuevo no creado aún
         }
         
-        const jsonString = JSON.stringify(inventario, null, 2);
-        const contenido = btoa(unescape(encodeURIComponent(jsonString)));
-        
-        const update = await fetch(
-            `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${FILE_PATH}`,
-            {
-                method: 'PUT',
-                headers: {
-                    Authorization: `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: "Actualización automática de inventario - Panel Admin",
-                    content: contenido,
-                    sha: sha
-                })
-            }
-        );
-        
-        if (update.ok) {
-            console.log("☁️ Sincronizado exitosamente con GitHub.");
-            return true;
+        if (response.ok) {
+            const data = await response.json();
+            const decodedContent = decodeURIComponent(escape(atob(data.content)));
+            return JSON.parse(decodedContent);
         }
-        return false;
     } catch (error) {
-        console.error("❌ Error de red sincronizando GitHub:", error);
+        console.error(`Error leyendo ${filePath} desde GitHub:`, error);
+    }
+    return null;
+}
+
+async function guardarEnGitHub(filePath, data, mensajeCommit) {
+    const token = localStorage.getItem('github_token');
+    const username = localStorage.getItem('github_username') || DEFAULT_USERNAME;
+    const repo = localStorage.getItem('github_repo') || DEFAULT_REPO;
+    if (!token) return false;
+
+    try {
+        const sha = await obtenerShaGitHub(filePath);
+        const url = `https://api.github.com/repos/${username}/${repo}/contents/${filePath}`;
+        const jsonString = JSON.stringify(data, null, 2);
+        const contentBase64 = btoa(unescape(encodeURIComponent(jsonString)));
+
+        const body = {
+            message: mensajeCommit,
+            content: contentBase64
+        };
+        if (sha) {
+            body.sha = sha;
+        }
+
+        const updateResponse = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                Authorization: `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        return updateResponse.ok;
+    } catch (error) {
+        console.error(`Error guardando ${filePath} en GitHub:`, error);
         return false;
     }
 }
 
-// --- APIS DE PERSISTENCIA LOCAL ---
+// Subir inventario actualizado a GitHub (Mantener por compatibilidad)
+async function subirInventarioAGitHub() {
+    return true; // Ya no se necesita subir por separado porque apiPost lo sube automáticamente.
+}
+
+// --- APIS DE PERSISTENCIA HYBRID (GitHub / LocalStorage) ---
 async function apiGet(ruta, fallbackKey) {
-    try {
-        const res = await fetch(ruta);
-        if (res.ok) {
-            const data = await res.json();
-            localStorage.setItem(fallbackKey, JSON.stringify(data));
-            return data;
+    const fileName = RUTA_A_ARCHIVO[ruta];
+    
+    // 1. Intentar con GitHub si hay token
+    const token = localStorage.getItem('github_token');
+    if (token && fileName) {
+        console.log(`☁️ Intentando cargar ${fileName} desde GitHub...`);
+        const dataGithub = await leerDesdeGitHub(fileName);
+        if (dataGithub !== null) {
+            localStorage.setItem(fallbackKey, JSON.stringify(dataGithub));
+            console.log(`✅ ${fileName} cargado exitosamente desde GitHub`);
+            return dataGithub;
         }
-    } catch (e) {
-        console.warn(`No se pudo leer de la API ${ruta}, usando caché local`, e);
     }
+
+    // 2. Fallback a la caché local de localStorage
+    console.warn(`⚠️ Usando caché de localStorage para ${ruta}`);
     return JSON.parse(localStorage.getItem(fallbackKey)) || [];
 }
 
 async function apiPost(ruta, data, fallbackKey) {
+    // Guardar siempre en caché local de inmediato
     localStorage.setItem(fallbackKey, JSON.stringify(data));
-    try {
-        const res = await fetch(ruta, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        return res.ok;
-    } catch (e) {
-        console.error(`Error guardando en API ${ruta}`, e);
-        return false;
+    
+    const fileName = RUTA_A_ARCHIVO[ruta];
+    let githubOk = false;
+
+    // 1. Guardar en GitHub si hay token
+    const token = localStorage.getItem('github_token');
+    if (token && fileName) {
+        console.log(`☁️ Intentando subir ${fileName} a GitHub...`);
+        githubOk = await guardarEnGitHub(fileName, data, `Actualización de ${fileName} - Panel Admin`);
+        if (githubOk) {
+            console.log(`✅ ${fileName} sincronizado con GitHub`);
+        } else {
+            console.warn(`⚠️ No se pudo guardar ${fileName} en GitHub`);
+        }
     }
+
+    return githubOk;
 }
+
 
 // --- GESTIÓN DE GASTOS / EGRESOS ---
 async function registrarGasto() {
@@ -212,83 +292,7 @@ async function limpiarSoloGastos() {
     }
 }
 
-// --- GESTIÓN DE PRODUCTOS ---
-async function guardarProducto() {
-    const id = document.getElementById('admin-codigo').value.trim().toUpperCase();
-    const nom = document.getElementById('admin-nombre').value.trim();
-    const pre = parseFloat(document.getElementById('admin-precio').value);
-    const stk = parseInt(document.getElementById('admin-stock').value) || 0;
-    const tip = document.getElementById('admin-tipo').value;
-
-    if (!id || !nom || isNaN(pre)) {
-        alert("⚠️ Faltan completar datos obligatorios (Código, Nombre y Precio).");
-        return;
-    }
-
-    if (pre < 0 || stk < 0) {
-        alert("⚠️ Valores inválidos. El precio y el stock no pueden ser negativos.");
-        return;
-    }
-
-    const idx = inventario.findIndex(p => p.id === id);
-    const producto = { id, nombre: nom, precio: pre, tipo: tip, stock: stk };
-
-    if (idx > -1) {
-        inventario[idx] = producto;
-    } else {
-        inventario.push(producto);
-    }
-
-    // Guardar en disco (API)
-    await apiPost('/api/inventario', inventario, 'inventario');
-    actualizarTodo();
-    limpiarFormulario();
-    beepSuccess();
-
-    // Sincronizar en la nube en segundo plano si hay token
-    subirInventarioAGitHub();
-}
-
-async function eliminarProducto(index) {
-    if (confirm(`¿Está seguro de eliminar "${inventario[index].nombre}" del inventario?\nEsto es permanente.`)) { 
-        inventario.splice(index, 1); 
-        await apiPost('/api/inventario', inventario, 'inventario');
-        actualizarTodo(); 
-        subirInventarioAGitHub(); 
-    }
-}
-
-function limpiarFormulario() { 
-    document.getElementById('admin-codigo').value = ''; 
-    document.getElementById('admin-nombre').value = ''; 
-    document.getElementById('admin-precio').value = ''; 
-    document.getElementById('admin-stock').value = ''; 
-    document.getElementById('admin-tipo').value = 'fijo';
-    document.getElementById('btn-guardar').innerText = '💾 GUARDAR EN EL INVENTARIO';
-    document.getElementById('admin-codigo').focus(); 
-}
-
-const adminCodigo = document.getElementById('admin-codigo');
-if (adminCodigo) {
-    adminCodigo.addEventListener('input', () => {
-        const val = adminCodigo.value.trim().toUpperCase();
-        if (val === '') return;
-        const p = inventario.find(item => item.id.toUpperCase() === val);
-        if (p) {
-            document.getElementById('admin-nombre').value = p.nombre;
-            document.getElementById('admin-precio').value = p.precio;
-            document.getElementById('admin-stock').value = p.stock;
-            document.getElementById('admin-tipo').value = p.tipo;
-            document.getElementById('btn-guardar').innerText = '💾 ACTUALIZAR EN INVENTARIO';
-        } else {
-            document.getElementById('admin-nombre').value = ''; 
-            document.getElementById('admin-precio').value = ''; 
-            document.getElementById('admin-stock').value = ''; 
-            document.getElementById('admin-tipo').value = 'fijo';
-            document.getElementById('btn-guardar').innerText = '💾 GUARDAR EN EL INVENTARIO';
-        }
-    });
-}
+// Las funciones de gestión de productos y cámara se movieron a inventario.js
 
 // --- LIBRETA DE FIADOS ---
 async function agregarFiado() {
@@ -349,6 +353,9 @@ async function borrarVentas() {
     if (ventas.length === 0) return alert("No hay movimientos de caja cargados en el turno de hoy.");
     
     let e = 0, t = 0, q = 0;
+    const ventasSolo = ventas.filter(v => v.total > 0);
+    const gastosSolo = ventas.filter(v => v.total < 0);
+
     ventas.forEach(x => { 
         if (x.metodo === 'efectivo') e += x.total; 
         else if (x.metodo === 'debito') t += x.total; 
@@ -356,28 +363,59 @@ async function borrarVentas() {
     });
     
     const general = e + t + q;
+    const totalGastos = gastosSolo.reduce((acc, g) => acc + Math.abs(g.total), 0);
+    const totalFiados = fiados.reduce((acc, f) => acc + f.monto, 0);
     
-    if (confirm(`¿CERRAR CAJA DE HOY?\n\nResumen Financiero:\n--------------------------\n💵 Efectivo Neto: $${e.toLocaleString('es-AR')}\n💳 Tarjetas/Débito: $${t.toLocaleString('es-AR')}\n📱 QR/MercadoPago: $${q.toLocaleString('es-AR')}\n--------------------------\n💰 TOTAL GENERAL: $${general.toLocaleString('es-AR')}\n\nLos datos se archivarán permanentemente en el historial de cierres y la caja de hoy se restablecerá a cero.`)) {
+    if (confirm(`¿CERRAR CAJA DE HOY?\n\n📊 Resumen Financiero:\n--------------------------\n💵 Efectivo Neto: $${e.toLocaleString('es-AR')}\n💳 Tarjetas/Débito: $${t.toLocaleString('es-AR')}\n📱 QR/MercadoPago: $${q.toLocaleString('es-AR')}\n➖ Gastos/Pagos: $${totalGastos.toLocaleString('es-AR')}\n--------------------------\n💰 TOTAL GENERAL: $${general.toLocaleString('es-AR')}\n🧾 Ventas realizadas: ${ventasSolo.length}\n📝 Fiados pendientes: ${fiados.length} clientes ($${totalFiados.toLocaleString('es-AR')})\n\nSe guardará el detalle completo en historial_cierres.json`)) {
+        
         // Cargar historial actual de la API
         historialCierres = await apiGet('/api/historial-cierres', 'historial_cierres');
         
-        historialCierres.push({ 
-            fecha: new Date().toLocaleString(), 
-            efectivo: e, 
-            otros: t + q, 
-            total: general 
-        });
+        // --- CIERRE COMPLETO CON DETALLE ---
+        const cierreCompleto = {
+            // Resumen del dia
+            fecha: new Date().toLocaleString(),
+            efectivo: e,
+            otros: t + q,
+            total: general,
+            total_gastos: totalGastos,
+            cantidad_ventas: ventasSolo.length,
+
+            // Detalle de cada venta/movimiento del dia
+            ventas_del_dia: ventas.map(v => ({
+                fecha: v.fecha || '',
+                total: v.total,
+                metodo: v.metodo || 'efectivo',
+                detalle: v.detalle || 'Venta',
+                productos: v.productos || []
+            })),
+
+            // Snapshot de fiados activos al momento del cierre
+            fiados_al_cierre: fiados.map(f => ({
+                cliente: f.cliente,
+                deuda: f.monto
+            })),
+            total_fiados_pendientes: totalFiados
+        };
         
-        // Limpiar ventas
+        historialCierres.push(cierreCompleto);
+        
+        // Limpiar ventas del dia
         ventas = [];
         
-        // Guardar ambos en la API
-        await apiPost('/api/historial-cierres', historialCierres, 'historial_cierres');
-        await apiPost('/api/ventas', ventas, 'ventas_realizadas');
+        // Guardar historial completo (con detalle) + ventas vacias + fiados en disco (JSON)
+        const okHistorial = await apiPost('/api/historial-cierres', historialCierres, 'historial_cierres');
+        const okVentas    = await apiPost('/api/ventas', ventas, 'ventas_realizadas');
+        await apiPost('/api/fiados', fiados, 'fiados');
         
         actualizarTodo();
         beepSuccess();
-        alert("✅ Caja del día guardada en el historial y reiniciada.");
+
+        if (okHistorial && okVentas) {
+            alert(`✅ Caja cerrada y guardada correctamente en historial_cierres.json\n\n📁 Se guardaron:\n• ${cierreCompleto.cantidad_ventas} ventas del dia\n• ${gastosSolo.length} egresos/gastos\n• ${fiados.length} fiados pendientes al cierre\n\n💰 Total del dia: $${general.toLocaleString('es-AR')}`);
+        } else {
+            alert(`⚠️ Cierre guardado en memoria del navegador.\nAsegurate de que el servidor server.py este corriendo para guardar en los archivos JSON.`);
+        }
     }
 }
 
@@ -430,45 +468,22 @@ function actualizarTodo() {
     document.getElementById('total-qr').innerText = `$${q.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
     document.getElementById('total-general').innerText = `$${(e + t + q).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
 
-    // 2. Tabla Productos de Inventario e Alerta de Reposición
-    const tbodyProd = document.querySelector('#tabla-productos tbody');
-    if (tbodyProd) {
-        tbodyProd.innerHTML = '';
-        const reposicion = [];
-        
-        // Ordenar productos alfabéticamente por nombre
-        inventario.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    // 2. Alerta de Reposición (Stock <= 3)
+    const reposicion = [];
+    inventario.forEach((p) => {
+        if (p.stock !== undefined && p.stock <= 3 && p.tipo !== "variable") {
+            reposicion.push(p.nombre);
+        }
+    });
 
-        inventario.forEach((p, i) => {
-            if (p.stock !== undefined && p.stock <= 3 && p.tipo !== "variable") {
-                reposicion.push(p.nombre);
-            }
-            
-            const trClass = (p.stock !== undefined && p.stock <= 3 && p.tipo !== "variable") ? 'status-low' : '';
-            const stockDisplay = p.tipo === 'variable' ? 'N/A' : (p.stock || 0);
-
-            tbodyProd.innerHTML += `
-                <tr class="${trClass}">
-                    <td><strong>${p.id}</strong></td>
-                    <td>${p.nombre}</td>
-                    <td>$${p.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
-                    <td>${stockDisplay}</td>
-                    <td>
-                        <button class="btn btn-danger btn-icon-only" onclick="eliminarProducto(${i})" title="Eliminar producto">🗑️</button>
-                    </td>
-                </tr>`;
-        });
-
-        // Mostrar Alerta de Reposición
-        const alerta = document.getElementById('alerta-reposicion');
-        const lista = document.getElementById('lista-reposicion');
-        if (alerta && lista) {
-            if (reposicion.length > 0) { 
-                alerta.style.display = 'block'; 
-                lista.innerHTML = reposicion.map(x => `<li><strong>${x}</strong> - Quedan 3 unidades o menos.</li>`).join(''); 
-            } else {
-                alerta.style.display = 'none';
-            }
+    const alerta = document.getElementById('alerta-reposicion');
+    const lista = document.getElementById('lista-reposicion');
+    if (alerta && lista) {
+        if (reposicion.length > 0) { 
+            alerta.style.display = 'block'; 
+            lista.innerHTML = reposicion.map(x => `<li><strong>${x}</strong> - Quedan 3 unidades o menos.</li>`).join(''); 
+        } else {
+            alerta.style.display = 'none';
         }
     }
 
@@ -515,54 +530,6 @@ function actualizarTodo() {
 
     // 5. Tabla de Gastos
     dibujarTablaGastos(); 
-}
-
-// --- CÁMARA ESCÁNER EN LA WEB ---
-let html5QrCode;
-
-function toggleEscaner() {
-    const readerDiv = document.getElementById('reader');
-    if (!readerDiv) return;
-    
-    if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => {
-            readerDiv.style.display = 'none';
-            console.log("Cámara apagada");
-        });
-        return;
-    }
-
-    if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader");
-    }
-
-    readerDiv.style.display = 'block';
-
-    const config = { fps: 15, qrbox: { width: 260, height: 160 } };
-
-    html5QrCode.start(
-        { facingMode: "environment" },
-        config,
-        (decodedText) => {
-            const inputCod = document.getElementById('admin-codigo');
-            if (inputCod) {
-                inputCod.value = decodedText.toUpperCase();
-                const event = new Event('input', { bubbles: true });
-                inputCod.dispatchEvent(event);
-            }
-            beepSuccess();
-            
-            html5QrCode.stop().then(() => {
-                readerDiv.style.display = 'none';
-                const inputNom = document.getElementById('admin-nombre');
-                if (inputNom) inputNom.focus();
-            });
-        },
-        (errorMessage) => { }
-    ).catch(err => {
-        alert("⚠️ No se pudo iniciar la cámara: " + err);
-        readerDiv.style.display = 'none';
-    });
 }
 
 function beepSuccess() {
