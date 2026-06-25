@@ -32,5 +32,19 @@
     "metodo": "efectivo",
     "fecha": "28/5/2026, 12:57:13",
     "detalle": "GASTO: luis"
+  },
+  {
+    "total": 45500,
+    "metodo": "efectivo",
+    "fecha": "25/6/2026, 13:28:05",
+    "productos": [
+      {
+        "id": "1",
+        "nombre": "yogur",
+        "precio": 3500,
+        "cantidad": 13,
+        "subtotal": 45500
+      }
+    ]
   }
 ]
