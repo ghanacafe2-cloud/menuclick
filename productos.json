@@ -66,6 +66,6 @@
     "nombre": "yogur",
     "precio": 3500,
     "tipo": "fijo",
-    "stock": 13
+    "stock": 0
   }
 ]
