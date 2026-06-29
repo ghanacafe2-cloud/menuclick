@@ -235,21 +235,36 @@ if (inputCodigo) {
         clearTimeout(timeoutEscaneo);
         
         timeoutEscaneo = setTimeout(() => {
-            const valor = inputCodigo.value.trim().toUpperCase();
+            const valor = inputCodigo.value.trim();
             if (!valor) {
                 ocultarSugerencias();
                 return;
             }
 
-            const exacto = productosDB.find(p => p.id.toUpperCase() === valor);
-            if (exacto) {
-                procesarEscaneo(valor);
+            // Comprobar si parece un código de barras (sólo dígitos, por lo menos 5)
+            const esCodigoBarras = /^\d{5,}$/.test(valor);
+            
+            if (esCodigoBarras) {
+                const exacto = productosDB.find(p => p.id.toUpperCase() === valor.toUpperCase());
+                if (exacto) {
+                    procesarEscaneo(valor);
+                    inputCodigo.value = '';
+                    ocultarSugerencias();
+                } else {
+                    mostrarSugerencias(valor);
+                }
+            } else {
+                // Si el usuario escribe letras (nombre), abrimos el catálogo con ese texto
+                abrirModalProductos();
+                const inputBuscar = document.getElementById('buscar-catalogo');
+                if (inputBuscar) {
+                    inputBuscar.value = valor;
+                    filtrarCatalogo();
+                }
                 inputCodigo.value = '';
                 ocultarSugerencias();
-            } else {
-                mostrarSugerencias(valor);
             }
-        }, 100);
+        }, 120);
     });
 
     inputCodigo.addEventListener('keypress', (e) => {
