@@ -53,12 +53,5 @@
     "precio": 4000,
     "tipo": "fijo",
     "stock": 20
-  },
-  {
-    "id": "7790387015324",
-    "nombre": "Yerba Mananita 500 gr",
-    "precio": 2500,
-    "tipo": "fijo",
-    "stock": 10
   }
 ]
