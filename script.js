@@ -70,6 +70,8 @@ function reproducirSonido(tipo) {
 const DEFAULT_USERNAME = "ghanacafe2-cloud";
 const DEFAULT_REPO = "menuclick";
 
+
+
 const RUTA_A_ARCHIVO = {
     '/api/inventario': 'productos.json',
     '/api/ventas': 'ventas.json',
