@@ -46,5 +46,19 @@
         "subtotal": 45500
       }
     ]
+  },
+  {
+    "total": 2500,
+    "metodo": "efectivo",
+    "fecha": "29/6/2026, 3:53:09",
+    "productos": [
+      {
+        "id": "7791661000333",
+        "nombre": "Bidón de agua Nestlé",
+        "precio": 2500,
+        "cantidad": 1,
+        "subtotal": 2500
+      }
+    ]
   }
 ]
