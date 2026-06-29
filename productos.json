@@ -4,7 +4,7 @@
     "nombre": "Bidón de agua Nestlé",
     "precio": 2500,
     "tipo": "fijo",
-    "stock": 36
+    "stock": 35
   },
   {
     "id": "865192070210108",
@@ -66,6 +66,6 @@
     "nombre": "yogur",
     "precio": 3500,
     "tipo": "fijo",
-    "stock": 99
+    "stock": 0
   }
 ]
