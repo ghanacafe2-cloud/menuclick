@@ -60,5 +60,11 @@
         "subtotal": 2500
       }
     ]
+  },
+  {
+    "total": 0,
+    "metodo": "efectivo",
+    "fecha": "29/6/2026, 3:53:13",
+    "productos": []
   }
 ]
