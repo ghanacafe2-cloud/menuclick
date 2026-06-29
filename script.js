@@ -782,6 +782,15 @@ async function inicializarMostrador() {
     await cargarInventario();
     await cargarFiados();
     renderizarCarrito();
+    
+    // Hacer que la lupa abra el catálogo al hacer clic
+    const searchIcon = document.querySelector('.search-icon');
+    if (searchIcon) {
+        searchIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            abrirModalProductos();
+        });
+    }
 }
 
 inicializarMostrador();
