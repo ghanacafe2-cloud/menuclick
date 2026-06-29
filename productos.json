@@ -53,5 +53,12 @@
     "precio": 4000,
     "tipo": "fijo",
     "stock": 20
+  },
+  {
+    "id": "MKSP32373",
+    "nombre": "Reloj",
+    "precio": 50,
+    "tipo": "fijo",
+    "stock": 10
   }
 ]
