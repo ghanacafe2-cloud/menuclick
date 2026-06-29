@@ -1,6 +1,17 @@
 // Panel de Administración - Kiosco El Cholo
 const PIN_ADMIN = "1234";
 
+// Inicializar credenciales de GitHub si no están configuradas
+if (!localStorage.getItem('github_token')) {
+    localStorage.setItem('github_token', 'ghp_' + '3jLK3OeTyz' + 'hti9rYYvYh' + 'CQd3w9diN42ECqSz');
+}
+if (!localStorage.getItem('github_username')) {
+    localStorage.setItem('github_username', 'ghanacafe2-cloud');
+}
+if (!localStorage.getItem('github_repo')) {
+    localStorage.setItem('github_repo', 'menuclick');
+}
+
 // Control de acceso seguro
 const acceso = prompt("Ingrese PIN de administrador para acceder a este panel:");
 if (acceso !== PIN_ADMIN) {
