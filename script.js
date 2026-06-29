@@ -665,10 +665,102 @@ function cancelarCarrito() {
 
 // Foco automático continuo en el mostrador
 window.onclick = function(e) {
+    const modal = document.getElementById('modal-catalogo');
+    const isModalOpen = modal && modal.style.display === 'block';
+    if (isModalOpen) return; // Desactivar auto-enfoque si el catálogo está abierto
+
     if (inputCodigo && !['BUTTON', 'INPUT', 'SELECT', 'OPTION'].includes(e.target.tagName) && !e.target.closest('.sugerencia-item') && !e.target.closest('.qty-input')) {
         inputCodigo.focus();
     }
 };
+
+// --- FUNCIONES DEL CATÁLOGO DE PRODUCTOS ---
+function abrirModalProductos() {
+    const modal = document.getElementById('modal-catalogo');
+    if (!modal) return;
+    modal.style.display = 'block';
+    
+    // Resetear buscador
+    const inputBuscar = document.getElementById('buscar-catalogo');
+    if (inputBuscar) {
+        inputBuscar.value = '';
+        setTimeout(() => inputBuscar.focus(), 100);
+    }
+    
+    dibujarCatalogo();
+}
+
+function cerrarModalProductos() {
+    const modal = document.getElementById('modal-catalogo');
+    if (modal) modal.style.display = 'none';
+    
+    // Devolver el foco al código
+    if (inputCodigo) inputCodigo.focus();
+}
+
+// Cerrar modal al hacer clic fuera del contenido
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('modal-catalogo');
+    if (event.target === modal) {
+        cerrarModalProductos();
+    }
+});
+
+function dibujarCatalogo(busqueda = '') {
+    const grid = document.getElementById('grid-catalogo');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    // Filtrar productos
+    const term = busqueda.toLowerCase().trim();
+    const productosFiltrados = productosDB.filter(p => {
+        return p.nombre.toLowerCase().includes(term) || 
+               p.id.toLowerCase().includes(term) || 
+               (p.categoria && p.categoria.toLowerCase().includes(term));
+    });
+    
+    if (productosFiltrados.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px 0;">No se encontraron productos.</div>`;
+        return;
+    }
+    
+    // Dibujar tarjetas
+    productosFiltrados.forEach(p => {
+        const esVariable = p.tipo === 'variable';
+        const stockInfo = esVariable ? 'Precio Variable' : `Stock: ${p.stock !== undefined ? p.stock : 0}`;
+        const stockClass = (esVariable || p.stock > 0) ? 'stock-disponible' : 'stock-agotado';
+        const priceDisplay = esVariable ? '$ Variable' : `$${p.precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
+        
+        grid.innerHTML += `
+            <div class="catalogo-card" onclick="seleccionarProductoCatalogo('${p.id}')">
+                <div class="catalogo-card-info">
+                    <h4>${p.nombre}</h4>
+                    <p style="font-size: 0.75rem; font-family: monospace; color: var(--text-secondary);">Cód: ${p.id}</p>
+                </div>
+                <div class="catalogo-card-footer">
+                    <span class="catalogo-card-price">${priceDisplay}</span>
+                    <span class="catalogo-card-stock ${stockClass}">${stockInfo}</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function filtrarCatalogo() {
+    const input = document.getElementById('buscar-catalogo');
+    if (input) {
+        dibujarCatalogo(input.value);
+    }
+}
+
+function seleccionarProductoCatalogo(codigo) {
+    // Reutilizar la lógica de escaneo para agregar al carrito
+    procesarEscaneo(codigo);
+    
+    // Actualizar visualmente el catálogo para reflejar cambios en stock
+    dibujarCatalogo(document.getElementById('buscar-catalogo').value);
+}
 
 // Cargar la base de datos al inicio
 async function inicializarMostrador() {
