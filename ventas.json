@@ -59,5 +59,11 @@
     "metodo": "efectivo",
     "fecha": "30/6/2026, 0:57:37",
     "detalle": "COBRO FIADO: dini"
+  },
+  {
+    "total": 5000,
+    "metodo": "debito",
+    "fecha": "30/6/2026, 0:58:40",
+    "detalle": "COBRO FIADO: tato"
   }
 ]
