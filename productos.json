@@ -17,7 +17,8 @@
     "id": "8480017534606",
     "nombre": "fritolin",
     "precio": 3200,
-    "tipo": "fijo"
+    "tipo": "fijo",
+    "stock": 1000
   },
   {
     "id": "7798151693020",
