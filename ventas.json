@@ -53,5 +53,11 @@
         "subtotal": 18000
       }
     ]
+  },
+  {
+    "total": 6500,
+    "metodo": "efectivo",
+    "fecha": "30/6/2026, 0:57:37",
+    "detalle": "COBRO FIADO: dini"
   }
 ]
