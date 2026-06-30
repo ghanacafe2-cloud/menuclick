@@ -526,16 +526,61 @@ function actualizarTodo() {
         tbodyHist.innerHTML = '';
         [...historialCierres].reverse().forEach((c, index) => {
             const realIndex = historialCierres.length - 1 - index;
+            
+            const totalGastosDia = c.total_gastos || 0;
+            const gastosDia = c.ventas_del_dia ? c.ventas_del_dia.filter(v => v.total < 0) : [];
+            const estaExpandido = !!cierresExpandidos[realIndex];
+
             tbodyHist.innerHTML += `
-                <tr>
-                    <td>${c.fecha}</td>
+                <tr class="fila-venta-cabecera" onclick="toggleDetalleCierre(${realIndex})">
+                    <td>
+                        <strong>${c.fecha.split(', ')[0] || c.fecha}</strong> <span style="font-size: 0.8rem; color: var(--text-secondary);">${c.fecha.split(', ')[1] || ''}</span>
+                        <span style="font-size: 0.8rem; color: var(--accent-primary); margin-left: 8px; display: block; margin-top: 4px;">
+                            ${estaExpandido ? '▲ Ocultar egresos' : '▼ Ver egresos'}
+                        </span>
+                    </td>
                     <td>$${c.efectivo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
                     <td>$${c.otros.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
+                    <td style="color: var(--danger); font-weight: bold;">
+                        ${totalGastosDia > 0 ? `-$${totalGastosDia.toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : '$0,00'}
+                    </td>
                     <td style="font-weight: 700; color: var(--success);">$${c.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
                     <td>
-                        <button class="btn btn-danger btn-icon-only" onclick="borrarCierreHistorial(${realIndex})" title="Borrar del historial">🗑️</button>
+                        <button class="btn btn-danger btn-icon-only" onclick="event.stopPropagation(); borrarCierreHistorial(${realIndex})" title="Borrar del historial">🗑️</button>
                     </td>
                 </tr>`;
+            
+            if (estaExpandido) {
+                let filasGastos = '';
+                if (gastosDia.length > 0) {
+                    gastosDia.forEach(g => {
+                        const time = g.fecha ? (g.fecha.split(', ')[1] || g.fecha) : 'Sin hora';
+                        // El detalle usualmente es "GASTO: Coca-cola", limpiamos "GASTO: " si es necesario o lo mostramos directo
+                        const concepto = g.detalle ? g.detalle.replace('GASTO: ', '') : 'Retiro / Gasto';
+                        filasGastos += `
+                            <li>
+                                <span>💸 <strong>${concepto}</strong> (${time})</span>
+                                <span style="color: var(--danger); font-weight: 600;">-$${Math.abs(g.total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                            </li>
+                        `;
+                    });
+                } else {
+                    filasGastos = `<li><span style="color: var(--text-secondary); font-style: italic;">Sin gastos registrados en este turno.</span></li>`;
+                }
+
+                tbodyHist.innerHTML += `
+                    <tr class="fila-detalle-productos">
+                        <td colspan="6">
+                            <ul class="lista-productos-vendidos" style="border-left: 3px solid var(--danger);">
+                                <li style="border-bottom: 1px dashed var(--border-color); font-weight: bold; color: var(--warning); padding-bottom: 6px; margin-bottom: 6px;">
+                                    <span>DETALLE DE EGRESOS (SALIDAS DE CAJA)</span>
+                                    <span>Total: -$${totalGastosDia.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+                                </li>
+                                ${filasGastos}
+                            </ul>
+                        </td>
+                    </tr>`;
+            }
         });
     }
 
@@ -642,6 +687,13 @@ function dibujarTablaVentasDetalle() {
 function toggleDetalleVenta(key) {
     ventasDetalleExpandidas[key] = !ventasDetalleExpandidas[key];
     dibujarTablaVentasDetalle();
+}
+
+let cierresExpandidos = {}; // Objeto para controlar qué cierres archivados están expandidos
+
+function toggleDetalleCierre(index) {
+    cierresExpandidos[index] = !cierresExpandidos[index];
+    actualizarTodo();
 }
 
 async function anularVentaEspecifica(index) {
