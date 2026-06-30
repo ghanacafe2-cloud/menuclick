@@ -12,5 +12,19 @@
         "subtotal": 32500
       }
     ]
+  },
+  {
+    "total": 7445172,
+    "metodo": "efectivo",
+    "fecha": "30/6/2026, 1:06:26",
+    "productos": [
+      {
+        "id": "865192070210108",
+        "nombre": "celular",
+        "precio": 354532,
+        "cantidad": 21,
+        "subtotal": 7445172
+      }
+    ]
   }
 ]
