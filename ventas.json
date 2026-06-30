@@ -65,5 +65,11 @@
     "metodo": "debito",
     "fecha": "30/6/2026, 0:58:40",
     "detalle": "COBRO FIADO: tato"
+  },
+  {
+    "total": 13300,
+    "metodo": "debito",
+    "fecha": "30/6/2026, 1:01:38",
+    "detalle": "COBRO FIADO: tato m"
   }
 ]
