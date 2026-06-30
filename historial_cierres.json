@@ -107,5 +107,66 @@
       }
     ],
     "total_fiados_pendientes": 2500
+  },
+  {
+    "fecha": "30/6/2026, 1:08:20",
+    "efectivo": 7382672,
+    "otros": 0,
+    "total": 7382672,
+    "total_gastos": 95000,
+    "cantidad_ventas": 2,
+    "ventas_del_dia": [
+      {
+        "fecha": "30/6/2026, 1:06:08",
+        "total": 32500,
+        "metodo": "efectivo",
+        "detalle": "Venta",
+        "productos": [
+          {
+            "id": "7791661000333",
+            "nombre": "Bidón de agua Nestlé",
+            "precio": 2500,
+            "cantidad": 13,
+            "subtotal": 32500
+          }
+        ]
+      },
+      {
+        "fecha": "30/6/2026, 1:06:26",
+        "total": 7445172,
+        "metodo": "efectivo",
+        "detalle": "Venta",
+        "productos": [
+          {
+            "id": "865192070210108",
+            "nombre": "celular",
+            "precio": 354532,
+            "cantidad": 21,
+            "subtotal": 7445172
+          }
+        ]
+      },
+      {
+        "fecha": "30/6/2026, 1:07:33",
+        "total": -25000,
+        "metodo": "efectivo",
+        "detalle": "GASTO: luz",
+        "productos": []
+      },
+      {
+        "fecha": "30/6/2026, 1:07:53",
+        "total": -70000,
+        "metodo": "efectivo",
+        "detalle": "GASTO: coca",
+        "productos": []
+      }
+    ],
+    "fiados_al_cierre": [
+      {
+        "cliente": "dani",
+        "deuda": 2500
+      }
+    ],
+    "total_fiados_pendientes": 2500
   }
 ]
