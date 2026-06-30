@@ -32,5 +32,26 @@
         "subtotal": 3000
       }
     ]
+  },
+  {
+    "total": 21200,
+    "metodo": "qr",
+    "fecha": "30/6/2026, 0:50:40",
+    "productos": [
+      {
+        "id": "8480017534606",
+        "nombre": "fritolin",
+        "precio": 3200,
+        "cantidad": 1,
+        "subtotal": 3200
+      },
+      {
+        "id": "7798048720907",
+        "nombre": "Maíz Pisingallo",
+        "precio": 1200,
+        "cantidad": 15,
+        "subtotal": 18000
+      }
+    ]
   }
 ]
