@@ -4,7 +4,7 @@
     "nombre": "Bidón de agua Nestlé",
     "precio": 2500,
     "tipo": "fijo",
-    "stock": 1108
+    "stock": 1107
   },
   {
     "id": "865192070210108",
@@ -59,7 +59,7 @@
     "nombre": "Yerba Mananita 500 gr",
     "precio": 2500,
     "tipo": "fijo",
-    "stock": 33332
+    "stock": 33331
   },
   {
     "id": "1",
