@@ -6,5 +6,9 @@
   {
     "cliente": "tato",
     "monto": 5000
+  },
+  {
+    "cliente": "dani",
+    "monto": 2500
   }
 ]
