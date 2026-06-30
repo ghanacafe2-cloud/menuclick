@@ -10,7 +10,8 @@
     "id": "865192070210108",
     "nombre": "celular",
     "precio": 354532,
-    "tipo": "fijo"
+    "tipo": "fijo",
+    "stock": 1000
   },
   {
     "id": "8480017534606",
