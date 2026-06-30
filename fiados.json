@@ -1,14 +1,10 @@
 [
   {
-    "cliente": "dini",
-    "monto": 6500
+    "cliente": "dani",
+    "monto": 2500
   },
   {
     "cliente": "tato",
     "monto": 5000
-  },
-  {
-    "cliente": "dani",
-    "monto": 2500
   }
 ]
