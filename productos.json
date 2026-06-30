@@ -31,7 +31,8 @@
     "id": "7798048720907",
     "nombre": "Maíz Pisingallo",
     "precio": 1200,
-    "tipo": "fijo"
+    "tipo": "fijo",
+    "stock": 22220
   },
   {
     "id": "PAN",
