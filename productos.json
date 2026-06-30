@@ -18,7 +18,7 @@
     "nombre": "fritolin",
     "precio": 3200,
     "tipo": "fijo",
-    "stock": 1000
+    "stock": 999
   },
   {
     "id": "7798151693020",
@@ -32,7 +32,7 @@
     "nombre": "Maíz Pisingallo",
     "precio": 1200,
     "tipo": "fijo",
-    "stock": 22220
+    "stock": 22205
   },
   {
     "id": "PAN",
