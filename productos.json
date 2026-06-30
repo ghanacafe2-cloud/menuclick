@@ -4,7 +4,7 @@
     "nombre": "Bidón de agua Nestlé",
     "precio": 2500,
     "tipo": "fijo",
-    "stock": 1110
+    "stock": 1109
   },
   {
     "id": "865192070210108",
@@ -52,7 +52,7 @@
     "nombre": "Te Taragui",
     "precio": 4000,
     "tipo": "fijo",
-    "stock": 1000
+    "stock": 999
   },
   {
     "id": "7790387015324",
