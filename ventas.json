@@ -32,5 +32,11 @@
     "metodo": "efectivo",
     "fecha": "30/6/2026, 1:07:33",
     "detalle": "GASTO: luz"
+  },
+  {
+    "total": -70000,
+    "metodo": "efectivo",
+    "fecha": "30/6/2026, 1:07:53",
+    "detalle": "GASTO: coca"
   }
 ]
