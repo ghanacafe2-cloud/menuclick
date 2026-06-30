@@ -2,5 +2,9 @@
   {
     "cliente": "dini",
     "monto": 6500
+  },
+  {
+    "cliente": "tato",
+    "monto": 5000
   }
 ]
