@@ -26,5 +26,11 @@
         "subtotal": 7445172
       }
     ]
+  },
+  {
+    "total": -25000,
+    "metodo": "efectivo",
+    "fecha": "30/6/2026, 1:07:33",
+    "detalle": "GASTO: luz"
   }
 ]
