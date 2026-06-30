@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "total": 5000,
+    "metodo": "efectivo",
+    "fecha": "30/6/2026, 0:47:32",
+    "productos": [
+      {
+        "id": "7790040147720",
+        "nombre": "sutido",
+        "precio": 5000,
+        "cantidad": 1,
+        "subtotal": 5000
+      }
+    ]
+  }
+]
