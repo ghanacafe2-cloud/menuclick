@@ -12,5 +12,11 @@
         "subtotal": 4200
       }
     ]
+  },
+  {
+    "total": 3000,
+    "metodo": "debito",
+    "fecha": "5/7/2026, 6:37:31 p.m.",
+    "detalle": "COBRO FIADO: cholo"
   }
 ]
