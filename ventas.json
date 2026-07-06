@@ -18,5 +18,19 @@
     "metodo": "debito",
     "fecha": "5/7/2026, 6:37:31 p.m.",
     "detalle": "COBRO FIADO: cholo"
+  },
+  {
+    "total": 5000,
+    "metodo": "efectivo",
+    "fecha": "5/7/2026, 21:17:23",
+    "productos": [
+      {
+        "id": "7790040147720",
+        "nombre": "sutido",
+        "precio": 5000,
+        "cantidad": 1,
+        "subtotal": 5000
+      }
+    ]
   }
 ]
