@@ -1,5 +1,5 @@
-// Panel de Administración - Kiosco El Cholo
-const PIN_ADMIN = "1234";
+// Panel de Administración -  El Cholo
+const PIN_ADMIN = "123;
 
 // Inicializar credenciales de GitHub si no están configuradas
 if (!localStorage.getItem('github_token')) {
