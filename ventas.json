@@ -11,13 +11,15 @@
         "cantidad": 1,
         "subtotal": 4200
       }
-    ]
+    ],
+    "id": "v-1784244910680-c66jooi0e"
   },
   {
     "total": 3000,
     "metodo": "debito",
     "fecha": "5/7/2026, 6:37:31 p.m.",
-    "detalle": "COBRO FIADO: cholo"
+    "detalle": "COBRO FIADO: cholo",
+    "id": "v-1784244910680-f1wkjggv4"
   },
   {
     "total": 5000,
@@ -31,6 +33,51 @@
         "cantidad": 1,
         "subtotal": 5000
       }
-    ]
+    ],
+    "id": "v-1784244910680-y4941m5ws"
+  },
+  {
+    "total": 4200,
+    "metodo": "efectivo",
+    "fecha": "5/7/2026, 6:35:37 p.m.",
+    "productos": [
+      {
+        "id": "7798151693020",
+        "nombre": "leche",
+        "precio": 4200,
+        "cantidad": 1,
+        "subtotal": 4200
+      }
+    ],
+    "id": "v-1784242602034-t2yfvdxuy"
+  },
+  {
+    "total": 3000,
+    "metodo": "debito",
+    "fecha": "5/7/2026, 6:37:31 p.m.",
+    "detalle": "COBRO FIADO: cholo",
+    "id": "v-1784242602034-9ruu64a6p"
+  },
+  {
+    "total": 5000,
+    "metodo": "efectivo",
+    "fecha": "5/7/2026, 21:17:23",
+    "productos": [
+      {
+        "id": "7790040147720",
+        "nombre": "sutido",
+        "precio": 5000,
+        "cantidad": 1,
+        "subtotal": 5000
+      }
+    ],
+    "id": "v-1784242602034-vawvt8zi6"
+  },
+  {
+    "id": "v-1784242602016-dagcq2kus",
+    "total": 5200,
+    "metodo": "debito",
+    "fecha": "16/7/2026, 19:56:42",
+    "detalle": "COBRO FIADO: by"
   }
 ]
