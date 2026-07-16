@@ -79,5 +79,19 @@
     "metodo": "debito",
     "fecha": "16/7/2026, 19:56:42",
     "detalle": "COBRO FIADO: by"
+  },
+  {
+    "total": 2500,
+    "metodo": "efectivo",
+    "fecha": "16/7/2026, 20:58:35",
+    "productos": [
+      {
+        "id": "7791661000333",
+        "nombre": "Bidón de agua Nestlé",
+        "precio": 2500,
+        "cantidad": 1,
+        "subtotal": 2500
+      }
+    ]
   }
 ]
