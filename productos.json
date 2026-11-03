@@ -1,5 +1,12 @@
 [
   {
+    "id": "1",
+    "nombre": "yogur",
+    "precio": 3500,
+    "tipo": "fijo",
+    "stock": 13
+  },
+  {
     "id": "AIRE DE ACONSICIONADO",
     "nombre": "aire",
     "precio": 50000,
@@ -77,16 +84,16 @@
     "stock": 10
   },
   {
-    "id": "1",
-    "nombre": "yogur",
-    "precio": 3500,
-    "tipo": "fijo",
-    "stock": 13
-  },
-  {
     "id": "PALETA",
     "nombre": "Paleta",
     "precio": 20000,
+    "tipo": "variable",
+    "stock": 0
+  },
+  {
+    "id": "ASADO",
+    "nombre": "Asado",
+    "precio": 200000,
     "tipo": "variable",
     "stock": 0
   }
