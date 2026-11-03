@@ -49,6 +49,13 @@
     "tipo": "variable"
   },
   {
+    "id": "PICADA",
+    "nombre": "picada",
+    "precio": 18000,
+    "tipo": "variable",
+    "stock": 0
+  },
+  {
     "id": "7790040147720",
     "nombre": "sutido",
     "precio": 5000,
@@ -77,9 +84,9 @@
     "stock": 13
   },
   {
-    "id": "PICADA",
-    "nombre": "picada",
-    "precio": 18000,
+    "id": "PALETA",
+    "nombre": "Paleta",
+    "precio": 20000,
     "tipo": "variable",
     "stock": 0
   }
