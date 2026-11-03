@@ -171,5 +171,12 @@
     "metodo": "qr",
     "fecha": "3/11/2026, 10:45:02",
     "detalle": "COBRO FIADO: juan 112315535"
+  },
+  {
+    "id": "v-1793713573807-4xhelubs1",
+    "total": -26000,
+    "metodo": "efectivo",
+    "fecha": "3/11/2026, 10:46:13",
+    "detalle": "GASTO: pollo"
   }
 ]
