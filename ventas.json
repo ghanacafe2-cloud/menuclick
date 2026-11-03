@@ -178,5 +178,20 @@
     "metodo": "efectivo",
     "fecha": "3/11/2026, 10:46:13",
     "detalle": "GASTO: pollo"
+  },
+  {
+    "id": "v-1793713703885-t5e5e8ij5",
+    "total": 12000,
+    "metodo": "debito",
+    "fecha": "3/11/2026, 10:48:23",
+    "productos": [
+      {
+        "id": "PALETA",
+        "nombre": "Paleta",
+        "precio": 12000,
+        "cantidad": 1,
+        "subtotal": 12000
+      }
+    ]
   }
 ]
