@@ -1,0 +1,5 @@
+*.docx
+.gemini/
+__pycache__/
+*.pyc
+carata whatsap/
