@@ -89,12 +89,5 @@
     "precio": 20000,
     "tipo": "variable",
     "stock": 0
-  },
-  {
-    "id": "ASADO",
-    "nombre": "Asado",
-    "precio": 200000,
-    "tipo": "variable",
-    "stock": 0
   }
 ]
